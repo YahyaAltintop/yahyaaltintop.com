@@ -16,9 +16,9 @@ jobs:
         with:
           node-version: '16'
       - name: Install dependencies
-        run: npm install
+        run: cd src & npm install
       - name: Build Vue.js app
-        run: npm run build
+        run: cd src & npm run build
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
