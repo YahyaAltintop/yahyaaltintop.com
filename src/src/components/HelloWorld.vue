@@ -24,8 +24,7 @@ onValue(countRef, (snapshot) => {
 });
 
 const increment = async () => {
-  count.value++;
-  set(countRef, count.value);
+  set(countRef, count.value + 1);
 };
 
 </script>
