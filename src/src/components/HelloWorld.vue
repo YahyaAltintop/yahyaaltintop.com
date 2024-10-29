@@ -1,53 +1,65 @@
 <script setup>
-import { ref } from 'vue'
+import { ref } from 'vue';
+import { initializeApp } from "firebase/app";
+import { getDatabase, ref as dbRef, set, onValue } from "firebase/database";
+import { getFirebaseConfig } from '../config';
 
-defineProps({
-  msg: String,
-})
+const firebaseConfig = getFirebaseConfig();
 
-const count = ref(0)
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const countRef = dbRef(db, '/count');
+const count = ref(null);
+const loading = ref(true);
+
+onValue(countRef, (snapshot) => {
+  count.value = snapshot.val();
+
+  if (loading.value) {
+    setTimeout(() => {
+      loading.value = false;
+    }, 200);
+  }
+});
+
+const increment = async () => {
+  count.value++;
+  set(countRef, count.value);
+};
+
 </script>
 
 <template>
-  <h1>{{ msg }} <i>Official web site</i></h1>
+  <h2>Click</h2>
 
   <div class="card">
-    <button type="button" @click="count++">counter <b>{{ count }}</b></button>
+    <button type="button" @click="increment" class="counter-button">
+      <b v-if="loading">
+        <span class="spinner"></span>
+      </b>
+      <b v-else>{{ count }}</b>
+    </button>
+    <p>
+      <code>This counter is infinite and increases in real time on click.</code>
+    </p>
   </div>
 </template>
 
 <style scoped>
-:root {
-  --background-color-light: #ffffff;
-  --background-color-dark: #333333;
-  --text-color-light: #333333;
-  --text-color-dark: #ffffff;
-  --button-background-light: #4CAF50;
-  --button-background-dark: #2E7D32;
-  --button-hover-light: #45a049;
-  --button-hover-dark: #1B5E20;
+.spinner {
+  border: 0.1em solid var(--spinner-color, #000000);
+  border-top-color: var(--spinner-color, #fff3f3);
+  border-radius: 50%;
+  display: inline-block;
+  height: 1em;
+  width: 1em;
+  animation: spin 1s linear infinite;
 }
 
-[data-theme="light"] {
-  background-color: var(--background-color-light);
-  color: var(--text-color-light);
-}
-
-[data-theme="dark"] {
-  background-color: var(--background-color-dark);
-  color: var(--text-color-dark);
-}
-
-h1 {
-  font-family: 'Arial', sans-serif;
-  text-align: center;
-  margin-top: 20px;
-}
-
-.card {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 20px;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
