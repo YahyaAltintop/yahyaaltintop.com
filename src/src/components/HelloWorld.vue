@@ -40,7 +40,7 @@ const increment = async () => {
       <b v-else>{{ count }}</b>
     </button>
     <p>
-      <code>This counter is infinite and increases in real time on click.</code>
+      <code>This counter is infinite and increases in real time whenever it is clicked.</code>
     </p>
   </div>
 </template>
