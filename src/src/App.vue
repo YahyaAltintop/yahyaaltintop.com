@@ -36,6 +36,8 @@ signInAnonymously(auth).then(() => {
 
     if (refreshUser) {
       banUser.value = true;
+      
+      handleBeforeUnload();
 
       setTimeout(() => {
         location.reload();
