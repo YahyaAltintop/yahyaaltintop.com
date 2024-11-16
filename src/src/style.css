@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Host+Grotesk:ital,wght@0,500;1,500&display=swap');
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -32,6 +34,7 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  font-family: "Host Grotesk", sans-serif;
 }
 
 h1 {

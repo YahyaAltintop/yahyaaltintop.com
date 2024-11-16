@@ -6,15 +6,24 @@ const props = defineProps({
   db: {
     type: Object,
     required: true
+  },
+  userUrl: {
+    type: String,
+    required: true
   }
 });
 
 const db = props.db;
-
 const countRef = dbRef(db, '/count');
+const userCountRef = dbRef(db, props.userUrl + '/count');
 
 const count = ref(null);
+const userCount = ref(null);
 const loading = ref(true);
+
+onValue(userCountRef, (snapshot) => {
+  userCount.value = snapshot.val();
+});
 
 onValue(countRef, (snapshot) => {
   count.value = snapshot.val();
@@ -23,9 +32,11 @@ onValue(countRef, (snapshot) => {
 
 const increment = () => {
   set(countRef, count.value + 1);
+  set(userCountRef, userCount.value + 1);
 };
 
 </script>
+
 <template>
   <div class="card">
     <button type="button" @click="increment" class="counter-button">

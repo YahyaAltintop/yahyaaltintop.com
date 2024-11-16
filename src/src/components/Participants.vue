@@ -1,30 +1,41 @@
 <script setup>
-import { ref, defineProps, onMounted, onBeforeUnmount } from 'vue';
+import { ref, defineProps } from 'vue';
 import { ref as dbRef, onValue, set } from "firebase/database";
 
 const props = defineProps({
   db: {
     type: Object,
     required: true
+  },
+  userUrl: {
+    type: String,
+    required: true
   }
 });
 
 const db = props.db;
+const userRef = dbRef(db, props.userUrl);
 
 const users = ref([]);
-const userId = Date.now();
 
-const userRef = dbRef(db, `/users/user${userId}`);
-
-let userNick = 'Anonymus_' + userId.toString().slice(-4);
+let userNick = 'Anonymus_' + props.userUrl.toString().slice(-4);
 const userNickRef = ref("");
 
 const usersRef = dbRef(props.db, '/users');
-set(userRef, userNick);
+
+const user = {
+  name: userNick,
+  refresh: false,
+  count: 0
+}
+
+set(userRef, user);
 
 onValue(usersRef, (snapshot) => {
   users.value = Object.values(snapshot.val());
 });
+
+const userNickDbRef = dbRef(db, props.userUrl + "/name");
 
 let userNickTimeout;
 
@@ -33,21 +44,10 @@ const setNewNick = () => {
 
   userNickTimeout = setTimeout(() => {
     userNick = userNickRef.value;
-    set(userRef, userNickRef.value);
+    user.name = userNick;
+    set(userNickDbRef, userNick);
   }, 300);
 };
-
-const handleBeforeUnload = () => {
-  set(userRef, null);
-};
-
-onMounted(() => {
-  window.addEventListener('beforeunload', handleBeforeUnload);
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener('beforeunload', handleBeforeUnload);
-});
 
 </script>
 
@@ -55,17 +55,24 @@ onBeforeUnmount(() => {
   <div class="user-list">
     <h3>Active Users</h3>
     <ul>
-        <li v-for="user in users" :key="user">{{ user }}</li>
+      <li v-for="user in users" :key="user.name" :class="{ 'current-user': user.name === userNick }">
+        <span>{{ user.name }}</span>
+        <span class="count-badge">{{ user.count }}</span>
+      </li>
     </ul>
-    <input type="text" 
-          :placeholder="'Change nick - ' + userNick" 
-          v-model="userNickRef" 
-          maxlength="20"
-          @input="setNewNick" class="nick-input">
+    
+    <input 
+      type="text" 
+      :placeholder="'Change nick - ' + userNick" 
+      v-model="userNickRef" 
+      maxlength="20"
+      @input="setNewNick" 
+      class="nick-input">
   </div>
 </template>
 
 <style scoped>
+
 .user-list {
   border: 2px solid #eee;
   border-radius: 8px;
@@ -74,15 +81,28 @@ onBeforeUnmount(() => {
   flex: 1;
 }
 
+.current-user {
+  color: red;
+}
+
 .user-list h3 {
   margin-top: 0;
-  font-size: 1.2em; 
+  font-size: 1.2em;
 }
 
 .user-list ul {
   list-style-type: none;
   max-height: 300px;
-  overflow-y: auto; 
+  overflow-y: auto;
+  padding: 0 5px;
+}
+
+.count-badge {
+  background-color: #eee;
+  color: black;
+  padding: 1px 5px;
+  border-radius: 10px;
+  font-size: 0.7em;
 }
 
 .user-list ul::-webkit-scrollbar {
@@ -102,13 +122,13 @@ onBeforeUnmount(() => {
 .user-list ul::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
 .user-list li {
-  background-color: var(--user-card-bg);
-  border: 1px solid var(--user-card-border);
-  border-radius: 4px;
   padding: 5px;
-  margin-bottom: 5px;
-  font-size: 0.9em; /* Adjust the font size as needed */
+  font-size: 1em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .nick-input {
