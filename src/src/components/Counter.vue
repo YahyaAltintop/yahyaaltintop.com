@@ -1,6 +1,6 @@
 <script setup>
-import { ref } from 'vue';
-import { ref as dbRef, set, onValue } from "firebase/database";
+import { ref } from 'vue'
+import { ref as dbRef, set, onValue } from "firebase/database"
 
 const props = defineProps({
   db: {
@@ -11,29 +11,33 @@ const props = defineProps({
     type: String,
     required: true
   }
-});
+})
 
-const db = props.db;
-const countRef = dbRef(db, '/count');
-const userCountRef = dbRef(db, props.userUrl + '/count');
+const db = props.db
+const countRef = dbRef(db, '/count')
+const userCountRef = dbRef(db, props.userUrl + '/count')
 
-const count = ref(null);
-const userCount = ref(null);
-const loading = ref(true);
+const count = ref(null)
+const userCount = ref(null)
+const loading = ref(true)
 
 onValue(userCountRef, (snapshot) => {
-  userCount.value = snapshot.val();
-});
+  userCount.value = snapshot.val()
+})
 
 onValue(countRef, (snapshot) => {
-  count.value = snapshot.val();
-  loading.value = false;
-});
+  count.value = snapshot.val()
+  loading.value = false
+})
 
-const increment = () => {
-  set(countRef, count.value + 1);
-  set(userCountRef, userCount.value + 1);
-};
+const increment = (event) => {
+  if (!event.isTrusted) {
+    return
+  }
+
+  set(countRef, count.value + 1)
+  set(userCountRef, userCount.value + 1)
+}
 
 </script>
 

@@ -1,59 +1,55 @@
 <script setup>
 import Counter from './components/Counter.vue'
 import Participants from './components/Participants.vue'
-import BannedUserSpinner from './components/BannedUserSpinner.vue';
+import BannedUserSpinner from './components/BannedUserSpinner.vue'
 
-import { ref } from 'vue';
-import { initializeApp } from "firebase/app";
-import { getDatabase, ref as dbRef, remove, onValue } from "firebase/database";
-import { getFirebaseConfig } from "./config";
+import { ref } from 'vue'
+import { initializeApp } from "firebase/app"
+import { getDatabase, ref as dbRef, remove, onValue } from "firebase/database"
+import { getFirebaseConfig } from "./config"
 
-import { getAuth, signInAnonymously, deleteUser } from "firebase/auth";
+import { getAuth, signInAnonymously, deleteUser } from "firebase/auth"
 
-const firebaseConfig = getFirebaseConfig();
+const firebaseConfig = getFirebaseConfig()
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+const app = initializeApp(firebaseConfig)
+const auth = getAuth(app)
 
-let db = null;
-let dbReady = ref(false);
+let db = null
+let dbReady = ref(false)
 
-const banUser = ref(false);
+const banUser = ref(false)
 
-const userId = Date.now();
-const userUrl = `/users/user${userId}`;
+const userId = Date.now()
+const userUrl = `/users/user${userId}`
 
-let userRef = null;
+let userRef = null
 
 signInAnonymously(auth).then(() => {
-  db = getDatabase(app);
-  userRef = dbRef(db, userUrl);
+  db = getDatabase(app)
+  userRef = dbRef(db, userUrl)
 
-  const userRefreshDbRef = dbRef(db, userUrl + "/refresh");
+  const userRefreshDbRef = dbRef(db, userUrl + "/refresh")
 
   onValue(userRefreshDbRef, (snapshot) => {
-    const refreshUser = snapshot.val();
+    const refreshUser = snapshot.val()
 
     if (refreshUser) {
-      banUser.value = true;
-      
-      handleBeforeUnload();
-
-      setTimeout(() => {
-        location.reload();
-      }, 4500);
+      banUser.value = true
+      handleBeforeUnload()
+      setTimeout(_ => location.reload(), 4000)
     }
-  });
+  })
 
   setTimeout(() => {
-    dbReady.value = true;
-  }, 500);
-});
+    dbReady.value = true
+  }, 500)
+})
 
 const handleBeforeUnload = async () => {
-  remove(userRef);
-  await deleteUser(auth.currentUser);
-};
+  remove(userRef)
+  await deleteUser(auth.currentUser)
+}
 
 window.addEventListener('beforeunload', handleBeforeUnload);
 

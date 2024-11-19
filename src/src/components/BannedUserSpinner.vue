@@ -1,32 +1,33 @@
 <script setup>
-import { defineProps } from 'vue';
+import { defineProps } from 'vue'
 
 const props = defineProps({
     show: {
-        type: Object,
+        type: Boolean,
         required: true
     },
-});
+})
 
-const show = props.show;
+const isVisible = props.show
+
 </script>
 
 <template>
-    <span v-if="show" class="ban-spinner"></span>
+    <span v-if="isVisible" class="banned-user-spinner"></span>
 </template>
 
 <style scoped>
-.ban-spinner {
+.banned-user-spinner {
     font-size: 50px;
     color: var(--color);
 }
 
-.ban-spinner:before {
+.banned-user-spinner:before {
     content: '';
     animation: 3s print linear alternate forwards;
 }
 
-.ban-spinner:after {
+.banned-user-spinner:after {
     content: '';
     position: absolute;
     top: 50%;
