@@ -24,7 +24,7 @@ const isVisible = props.show
 
 .banned-user-spinner:before {
     content: '';
-    animation: 3s print linear alternate forwards;
+    animation: 2s print linear alternate forwards;
 }
 
 .banned-user-spinner:after {

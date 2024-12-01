@@ -31,19 +31,11 @@ signInAnonymously(auth).then(() => {
 
   const userRefreshDbRef = dbRef(db, userUrl + "/refresh")
 
-  onValue(userRefreshDbRef, (snapshot) => {
-    const refreshUser = snapshot.val()
-
-    if (refreshUser) {
-      banUser.value = true
-      handleBeforeUnload()
-      setTimeout(_ => location.reload(), 4000)
-    }
-  })
+  onValue(userRefreshDbRef, refreshUserCallback)
 
   setTimeout(() => {
     dbReady.value = true
-  }, 500)
+  }, 200)
 })
 
 const handleBeforeUnload = async () => {
@@ -52,6 +44,17 @@ const handleBeforeUnload = async () => {
 }
 
 window.addEventListener('beforeunload', handleBeforeUnload);
+window.addEventListener('unload', handleBeforeUnload);
+
+function refreshUserCallback(snapshot) {
+  const refreshUser = snapshot.val()
+
+  if (refreshUser) {
+    banUser.value = true
+    handleBeforeUnload()
+    setTimeout(_ => location.reload(), 2500)
+  }
+}
 
 </script>
 

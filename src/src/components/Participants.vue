@@ -1,6 +1,8 @@
 <script setup>
 import { ref, defineProps } from 'vue';
 import { ref as dbRef, onValue, set } from "firebase/database";
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { faCrown, faFire, faMedal, faUserClock } from '@fortawesome/free-solid-svg-icons'
 
 const props = defineProps({
   db: {
@@ -32,7 +34,7 @@ const user = {
 set(userRef, user);
 
 onValue(usersRef, (snapshot) => {
-  users.value = Object.values(snapshot.val());
+  users.value = Object.values(snapshot.val()).sort((a, b) => b.count - a.count);
 });
 
 const userNickDbRef = dbRef(db, props.userUrl + "/name");
@@ -55,7 +57,11 @@ const setNewNick = () => {
   <div class="user-list">
     <h3>Active Users</h3>
     <ul>
-      <li v-for="user in users" :key="user.name" :class="{ 'current-user': user.name === userNick }">
+      <li v-for="(user, i) in users" :key="user.name" :class="{ 'current-user': user.name === userNick }">
+        <span v-if="i == 0"><FontAwesomeIcon :icon="faCrown" /></span>
+        <span v-else-if="i == 1"><FontAwesomeIcon :icon="faFire" /></span>
+        <span v-else-if="i == 2"><FontAwesomeIcon :icon="faMedal" /></span>
+        <span v-else><FontAwesomeIcon :icon="faUserClock" /></span>
         <span>{{ user.name }}</span>
         <span class="count-badge">{{ user.count }}</span>
       </li>
