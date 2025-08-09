@@ -181,7 +181,7 @@ onUnmounted(() => {
             <div class="profile-stats">
               <div class="stat-item">
                 <span class="stat-icon">
-                  <FontAwesomeIcon :icon="faHeart" style="color:red" beat-fade />
+                  <FontAwesomeIcon :icon="faHeart" beat-fade />
                 </span>
                 <span class="stat-label">Alive</span>
                 <span class="stat-value">{{ ageStr }}</span>
@@ -189,7 +189,7 @@ onUnmounted(() => {
               
               <div class="stat-item">
                 <span class="stat-icon">
-                  <FontAwesomeIcon :icon="faCode" flip style="color: black" />
+                  <FontAwesomeIcon :icon="faCode" flip />
                 </span>
                 <span class="stat-label">Coding</span>
                 <span class="stat-value">{{ codingStr }}</span>
@@ -232,7 +232,7 @@ onUnmounted(() => {
   --bg-secondary: #f5f5f7;
   --text-primary: #1d1d1f;
   --text-secondary: #515154;
-  --text-color: #eee;
+  --text-color: rgb(92, 90, 90);
   --accent-primary: #0066cc;
   --accent-secondary: #147ce5;
   --border-color: rgba(0, 0, 0, 0.1);
@@ -248,7 +248,7 @@ onUnmounted(() => {
   --bg-secondary: #1d1d1f;
   --text-primary: #f5f5f7;
   --text-secondary: #a1a1a6;
-  --text-color: rgb(92, 90, 90);
+  --text-color: #eee;
   --accent-primary: #0a84ff;
   --accent-secondary: #5ac8fa;
   --border-color: rgba(255, 255, 255, 0.15);
@@ -499,6 +499,7 @@ a:hover {
 .stat-icon {
   font-size: 1.5rem;
   width: 40px;
+  color: var(--text-color);
   display: flex;
   justify-content: center;
 }
