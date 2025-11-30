@@ -1,6 +1,7 @@
 {
   "hosting": {
     "public": "./src/dist",
+    "site": "my-first-project-test-fb6a9",
     "ignore": [
       "firebase.json",
       "**/.*",

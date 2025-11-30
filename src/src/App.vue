@@ -1,11 +1,44 @@
 <script setup>
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faLinkedin, faGithub, faYoutube, faXTwitter } from '@fortawesome/free-brands-svg-icons'
-import { faHeart, faCode, faSun, faMoon } from '@fortawesome/free-solid-svg-icons'
-import { ref, onMounted, onUnmounted, watch } from 'vue'
-import yhyImage from './assets/yhy.jpg'
+import { faHeart, faCode, faSun, faMoon, faThumbsUp } from '@fortawesome/free-solid-svg-icons'
+import { ref, onMounted, onUnmounted } from 'vue'
+import yhyImage from './assets/yhy.png'
+
+import { getDatabase, ref as dbRef, onValue, set } from 'firebase/database'
 
 const isDarkMode = ref(true)
+
+const db = getDatabase()
+const likeCount = ref(0)
+const likeRef = dbRef(db, 'likes')
+
+onValue(likeRef, (snapshot) => {
+  likeCount.value = snapshot.val() || 0
+})
+
+const clickCombo = ref(0)
+const showCombo = ref(false)
+let comboTimeout = null
+
+const handleLike = (event) => {
+  
+  if (!event.isTrusted) {
+    return
+  }
+
+  set(likeRef, likeCount.value + 1)
+  
+  clickCombo.value++
+  showCombo.value = true
+  
+  clearTimeout(comboTimeout)
+
+  comboTimeout = setTimeout(() => {
+    clickCombo.value = 0
+    showCombo.value = false
+  }, 5000)
+}
 
 onMounted(() => {
   const savedTheme = localStorage.getItem('theme')
@@ -36,7 +69,6 @@ const applyTheme = () => {
   document.documentElement.setAttribute('data-theme', isDarkMode.value ? 'dark' : 'light')
 }
 
-// Date calculations
 const birthDate = new Date(2005, 2, 6, 12, 40)
 const codingDate = new Date(2020, 6, 17, 9, 40)
 
@@ -79,10 +111,6 @@ onMounted(() => {
 onUnmounted(() => {
   if (intervalId) clearInterval(intervalId)
 })
-
-const showTooltip = ref(false)
-const onAvatarEnter = () => (showTooltip.value = true)
-const onAvatarLeave = () => (showTooltip.value = false)
 
 const titles = [
   "JavaScript",
@@ -150,113 +178,110 @@ onUnmounted(() => {
   if (typingIntervalId) clearTimeout(typingIntervalId)
   if (erasingTimeoutId) clearTimeout(erasingTimeoutId)
 })
-
 </script>
 
 <template>
-  <div class="app-container">
-    <section class="profile-section">
-      <canvas id="bg-canvas" class="background-canvas"></canvas>
-      
-      <button class="theme-toggle" @click="toggleTheme" aria-label="Toggle theme">
-        <FontAwesomeIcon :icon="isDarkMode ? faSun : faMoon" />
-      </button>
-      
-      <div class="container">
-        <div class="profile-content">
-          <div class="avatar-container" @mouseenter="onAvatarEnter" @mouseleave="onAvatarLeave">
-            <div class="avatar">
-              <img :src="yhyImage" alt="Yahya ALTINTOP" />
-            </div>
-            <transition name="zoom">
-              <div v-if="showTooltip" class="avatar-tooltip">
-                <img :src="yhyImage" alt="Yahya ALTINTOP" class="avatar-tooltip-img" />
-              </div>
-            </transition>
+  <div class="app-wrapper">
+    <button class="theme-toggle" @click="toggleTheme" aria-label="Toggle theme">
+      <FontAwesomeIcon :icon="isDarkMode ? faSun : faMoon" />
+    </button>
+
+    <main class="main-content">
+      <div class="card">
+        <div class="avatar-wrapper">
+          <div class="avatar">
+            <img :src="yhyImage" alt="Yahya ALTINTOP" />
           </div>
+        </div>
+
+        <div class="info">
+          <h1 class="name">Yahya ALTINTOP</h1>
+          <p class="role">Full Stack Developer</p>
           
-          <div class="profile-info">
-            <h1 class="profile-name">Yahya ALTINTOP</h1>
-            
-            <div class="profile-stats">
-              <div class="stat-item">
-                <span class="stat-icon">
-                  <FontAwesomeIcon :icon="faHeart" beat-fade />
-                </span>
+          <div class="typing-wrapper">
+            <span class="typing-text">{{ typingTitle }}</span>
+            <span class="cursor" v-if="typingCursor">|</span>
+          </div>
+
+          <div class="stats">
+            <div class="stat">
+              <span class="stat-icon">
+                <FontAwesomeIcon :icon="faHeart" beat-fade />
+              </span>
+              <div class="stat-content">
                 <span class="stat-label">Alive</span>
                 <span class="stat-value">{{ ageStr }}</span>
               </div>
-              
-              <div class="stat-item">
-                <span class="stat-icon">
-                  <FontAwesomeIcon :icon="faCode" flip />
-                </span>
+            </div>
+            <div class="stat">
+              <span class="stat-icon">
+                <FontAwesomeIcon :icon="faCode" flip />
+              </span>
+              <div class="stat-content">
                 <span class="stat-label">Coding</span>
                 <span class="stat-value">{{ codingStr }}</span>
               </div>
             </div>
-            
-            <div class="profile-title">
-              <h2>Full Stack Developer</h2>
-              <div class="typing-container">
-                <span class="typing-text">{{ typingTitle }}</span>
-                <span class="typing-cursor" v-if="typingCursor">|</span>
-              </div>
-            </div>
-            
-            <div class="social-links">
-              <a href="https://linkedin.com/in/yahyaaltintop" target="_blank" aria-label="LinkedIn">
-                <FontAwesomeIcon :icon="faLinkedin" />
-              </a>
-              <a href="https://github.com/YahyaAltintop" target="_blank" aria-label="GitHub">
-                <FontAwesomeIcon :icon="faGithub" />
-              </a>
-              <a href="https://youtube.com/@yahyaaltintop" target="_blank" aria-label="YouTube">
-                <FontAwesomeIcon :icon="faYoutube" />
-              </a>
-              <a href="https://twitter.com/Yahyaltintop" target="_blank" aria-label="X">
-                <FontAwesomeIcon :icon="faXTwitter" />
-              </a>
-            </div>
+          </div>
+
+          <div class="socials">
+            <a href="https://linkedin.com/in/yahyaaltintop" target="_blank" aria-label="LinkedIn" class="social-link linkedin">
+              <FontAwesomeIcon :icon="faLinkedin" />
+            </a>
+            <a href="https://github.com/YahyaAltintop" target="_blank" aria-label="GitHub" class="social-link github">
+              <FontAwesomeIcon :icon="faGithub" />
+            </a>
+            <a href="https://youtube.com/@yahyaaltintop" target="_blank" aria-label="YouTube" class="social-link youtube">
+              <FontAwesomeIcon :icon="faYoutube" />
+            </a>
+            <a href="https://twitter.com/Yahyaltintop" target="_blank" aria-label="X" class="social-link twitter">
+              <FontAwesomeIcon :icon="faXTwitter" />
+            </a>
+          </div>
+          <div class="like-section">
+            <button class="like-button" @click="handleLike" aria-label="Like">
+              <FontAwesomeIcon :icon="faThumbsUp" />
+              <span class="like-count">{{ likeCount }}</span>
+              <transition name="combo-pop">
+                <span v-if="showCombo && clickCombo >= 5" class="combo-badge" :class="{ 'combo-fire': clickCombo >= 20 && clickCombo < 50, 'combo-crazy': clickCombo >= 50 && clickCombo < 100, 'combo-greatest': clickCombo >= 100 }">
+                  x{{ clickCombo }}
+                </span>
+              </transition>
+            </button>
           </div>
         </div>
       </div>
-    </section>
+    </main>
   </div>
 </template>
 
 <style>
-
 :root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f5f5f7;
-  --text-primary: #1d1d1f;
-  --text-secondary: #515154;
-  --text-color: rgb(92, 90, 90);
-  --accent-primary: #0066cc;
-  --accent-secondary: #147ce5;
-  --border-color: rgba(0, 0, 0, 0.1);
-  --card-bg: rgba(255, 255, 255, 0.8);
-  --card-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
-  --gradient-start: #f0f0f3;
-  --gradient-end: #ffffff;
-  --icon-color: #1d1d1f;
+  --bg: #f8fafc;
+  --bg-card: #ffffff;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --accent: #6366f1;
+  --accent-light: #818cf8;
+  --border: #e2e8f0;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --radius: 24px;
+  --radius-sm: 16px;
 }
 
 [data-theme="dark"] {
-  --bg-primary: #000000;
-  --bg-secondary: #1d1d1f;
-  --text-primary: #f5f5f7;
-  --text-secondary: #a1a1a6;
-  --text-color: #eee;
-  --accent-primary: #0a84ff;
-  --accent-secondary: #5ac8fa;
-  --border-color: rgba(255, 255, 255, 0.15);
-  --card-bg: rgba(29, 29, 31, 0.8);
-  --card-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-  --gradient-start: #1d1d1f;
-  --gradient-end: #2c2c2e;
-  --icon-color: #f5f5f7;
+  --bg: #0f172a;
+  --bg-card: #1e293b;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --accent: #818cf8;
+  --accent-light: #a5b4fc;
+  --border: #334155;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -267,422 +292,419 @@ onUnmounted(() => {
 
 html, body {
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-size: 16px;
-  line-height: 1.5;
-  scroll-behavior: smooth;
-}
-
-body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.app-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-h1 {
-  font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 5rem;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  line-height: 1.05;
-  margin-bottom: 0.5em;
-}
-
-h2 {
-  font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 3.5rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin-bottom: 0.5em;
-}
-
-p {
-  font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 1.25rem;
-  line-height: 1.5;
-  margin-bottom: 1em;
-}
-
-a {
-  color: var(--accent-primary);
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-a:hover {
-  color: var(--accent-secondary);
-}
-
-.container {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 24px;
-}
-
-@media (max-width: 1024px) {
-  h1 { font-size: 4rem; }
-  h2 { font-size: 3rem; }
-  p { font-size: 1.125rem; }
-}
-
-@media (max-width: 768px) {
-  h1 { font-size: 3.5rem; }
-  h2 { font-size: 2.5rem; }
-  p { font-size: 1.125rem; }
-  .container { padding: 0 20px; }
-}
-
-@media (max-width: 480px) {
-  h1 { font-size: 2.5rem; }
-  h2 { font-size: 2rem; }
-  p { font-size: 1rem; }
-  .container { padding: 0 16px; }
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 </style>
 
 <style scoped>
-.profile-section {
-  position: relative;
+.app-wrapper {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 0;
-  overflow: hidden;
+  padding: 24px;
+  position: relative;
 }
 
-.background-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-}
-
+/* Theme Toggle */
 .theme-toggle {
   position: fixed;
   top: 24px;
   right: 24px;
   z-index: 100;
-  background: var(--bg-secondary);
-  color: var(--icon-color);
-  border: none;
   width: 48px;
   height: 48px;
   border-radius: 50%;
+  border: none;
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .theme-toggle:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-lg);
 }
 
-.profile-content {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 60px;
-  flex-wrap: wrap;
+/* Main Content */
+.main-content {
+  width: 100%;
+  max-width: 600px;
 }
 
-.avatar-container {
+/* Card */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 48px;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border);
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+/* Avatar */
+.avatar-wrapper {
   position: relative;
-  flex-shrink: 0;
+  display: inline-block;
+  margin-bottom: 32px;
 }
 
 .avatar {
-  width: 300px;
-  height: 300px;
+  width: 140px;
+  height: 140px;
   border-radius: 50%;
   overflow: hidden;
-  border: 5px solid var(--border-color);
-  background: var(--bg-secondary);
-  box-shadow: var(--card-shadow);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  border: 4px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 .avatar:hover {
-  transform: scale(1.03);
-  box-shadow: 0 25px 65px rgba(0, 0, 0, 0.25);
+  transform: scale(1.02);
+  border-color: var(--accent);
 }
 
 .avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
 }
 
-.avatar-tooltip {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-  pointer-events: none;
-}
-
-.avatar-tooltip-img {
-  width: 450px;
-  height: 450px;
-  border-radius: 50%;
-  border: 8px solid var(--border-color);
-  box-shadow: var(--card-shadow);
-  object-fit: cover;
-}
-
-.zoom-enter-active,
-.zoom-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.zoom-enter-from,
-.zoom-leave-to {
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0.8);
-}
-
-.profile-info {
-  flex: 1;
-  min-width: 300px;
-  max-width: 650px;
-}
-
-.profile-name {
-  font-size: 6rem;
-  font-weight: 700;
-  margin-bottom: 24px;
-  background: linear-gradient(135deg, var(--text-color));
-  -webkit-background-clip: text;
-  background-clip: text;
-  line-height: 1.1;
-}
-
-
-.profile-stats {
+/* Info */
+.info {
   display: flex;
-  gap: 24px;
-  margin-bottom: 40px;
-  flex-wrap: wrap;
-}
-
-.stat-item {
-  display: flex;
+  flex-direction: column;
   align-items: center;
-  background: var(--bg-secondary);
-  border-radius: 16px;
-  padding: 16px 24px;
-  gap: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-  flex-wrap: nowrap;
-  border: 2px solid var(--border-color);
 }
 
-.stat-icon {
-  font-size: 1.5rem;
-  width: 40px;
-  color: var(--text-color);
-  display: flex;
-  justify-content: center;
-}
-
-.stat-label {
-  font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, sans-serif;
-  font-weight: 600;
-  font-size: 1.25rem;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.stat-value {
-  font-family: "SF Mono", monospace;
-  font-weight: 500;
-  font-size: 1.25rem;
-  color: var(--text-primary);
-}
-
-.profile-title {
-  margin-bottom: 40px;
-}
-
-.profile-title h2 {
-  font-size: 3.5rem;
+.name {
+  font-size: 2rem;
   font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+  letter-spacing: -0.02em;
+}
+
+.role {
+  font-size: 1.1rem;
+  color: var(--text-muted);
   margin-bottom: 8px;
-  color: var(--text-primary);
+  font-weight: 500;
 }
 
-.typing-container {
-  font-family: "SF Mono", monospace;
-  font-size: 1.75rem;
-  color: var(--accent-primary);
-  height: 2.5rem;
+/* Typing */
+.typing-wrapper {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 1rem;
+  color: var(--accent);
+  margin-bottom: 32px;
+  height: 1.5rem;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .typing-text {
-  color: var(--accent-primary);
+  color: var(--accent);
 }
 
-.typing-cursor {
-  display: inline-block;
+.cursor {
+  animation: blink 0.8s infinite;
+  font-weight: 300;
   margin-left: 2px;
-  font-weight: 700;
-  animation: blink 0.8s step-end infinite;
-  color: var(--accent-primary);
 }
 
 @keyframes blink {
-  from, to { opacity: 1; }
-  50% { opacity: 0; }
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
 }
 
-.social-links {
+/* Stats */
+.stats {
   display: flex;
-  gap: 20px;
+  gap: 16px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
-.social-links a {
-  color: var(--text-secondary);
-  font-size: 28px;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: var(--bg-secondary);
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+}
+
+.stat:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.stat-icon {
+  font-size: 1.25rem;
+  color: var(--accent);
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
-.social-links a:hover {
-  transform: translateY(-5px);
-  color: var(--text-primary);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
-.social-links a[aria-label="LinkedIn"]:hover { color: #0077B5; }
-.social-links a[aria-label="GitHub"]:hover { color: var(--text-primary); }
-.social-links a[aria-label="YouTube"]:hover { color: #FF0000; }
-.social-links a[aria-label="X"]:hover { color: #1DA1F2; }
-
-@media (max-width: 1024px) {
-  .profile-name {
-    font-size: 5rem;
-  }
-  
-  .profile-title h2 {
-    font-size: 3rem;
-  }
-  
-  .typing-container {
-    font-size: 1.5rem;
-  }
-  
-  .avatar {
-    width: 250px;
-    height: 250px;
-  }
-  
-  .avatar-tooltip-img {
-    width: 350px;
-    height: 350px;
-  }
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-@media (max-width: 768px) {
-  .profile-section {
-    padding: 60px 0;
+.stat-value {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.875rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Social Links */
+.socials {
+  display: flex;
+  gap: 12px;
+}
+
+.social-link {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+}
+
+.social-link:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+}
+
+.social-link.linkedin:hover {
+  color: #0077b5;
+  border-color: #0077b5;
+  background: rgba(0, 119, 181, 0.1);
+}
+
+.social-link.github:hover {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+.social-link.youtube:hover {
+  color: #ff0000;
+  border-color: #ff0000;
+  background: rgba(255, 0, 0, 0.1);
+}
+
+.social-link.twitter:hover {
+  color: #1da1f2;
+  border-color: #1da1f2;
+  background: rgba(29, 161, 242, 0.1);
+}
+
+/* Like Button */
+.like-section {
+  margin-top: 24px;
+}
+
+.like-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.like-button:hover {
+  color: #e91e63;
+  border-color: #e91e63;
+  background: rgba(233, 30, 99, 0.1);
+  transform: translateY(-2px);
+}
+
+.like-button:active {
+  transform: scale(0.95);
+}
+
+.like-count {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-weight: 600;
+}
+
+/* Combo Badge */
+.combo-badge {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  background: var(--accent);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  animation: pulse 0.3s ease;
+}
+
+.combo-badge.combo-fire {
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  box-shadow: 0 2px 12px rgba(239, 68, 68, 0.5);
+  animation: shake 0.3s ease;
+}
+
+.combo-badge.combo-crazy {
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  box-shadow: 0 2px 16px rgba(139, 92, 246, 0.6);
+  animation: shake 0.3s ease, glow 0.5s ease infinite alternate;
+}
+
+.combo-badge.combo-greatest {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b, #ef4444);
+  box-shadow: 0 2px 20px rgba(251, 191, 36, 0.7);
+  animation: shake 0.3s ease, rainbow-glow 1s ease infinite alternate;
+  font-size: 0.85rem;
+  padding: 5px 10px;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px) rotate(-2deg); }
+  75% { transform: translateX(3px) rotate(2deg); }
+}
+
+@keyframes glow {
+  from { box-shadow: 0 2px 16px rgba(139, 92, 246, 0.6); }
+  to { box-shadow: 0 2px 24px rgba(236, 72, 153, 0.8); }
+}
+
+@keyframes rainbow-glow {
+  0% { box-shadow: 0 2px 20px rgba(251, 191, 36, 0.8); }
+  33% { box-shadow: 0 2px 24px rgba(245, 158, 11, 0.9); }
+  66% { box-shadow: 0 2px 28px rgba(239, 68, 68, 0.9); }
+  100% { box-shadow: 0 2px 32px rgba(251, 191, 36, 1); }
+}
+
+/* Combo Transition */
+.combo-pop-enter-active {
+  animation: pulse 0.3s ease;
+}
+
+.combo-pop-leave-active {
+  transition: all 0.2s ease;
+}
+
+.combo-pop-leave-to {
+  opacity: 0;
+  transform: scale(0.5) translateY(-10px);
+}
+
+.like-button {
+  position: relative;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .card {
+    padding: 32px 24px;
+    border-radius: 20px;
   }
-  
-  .profile-content {
+
+  .name {
+    font-size: 1.75rem;
+  }
+
+  .role {
+    font-size: 1rem;
+  }
+
+  .stats {
     flex-direction: column;
-    text-align: center;
-    gap: 40px;
+    width: 100%;
   }
-  
-  .profile-name {
-    font-size: 4rem;
-  }
-  
-  .profile-title h2 {
-    font-size: 2.5rem;
-  }
-  
-  .profile-stats {
+
+  .stat {
+    width: 100%;
     justify-content: center;
   }
-  
-  .social-links {
-    justify-content: center;
+
+  .avatar {
+    width: 120px;
+    height: 120px;
   }
-  
+
+  .avatar-enlarged img {
+    width: 260px;
+    height: 260px;
+  }
+
   .theme-toggle {
     top: 16px;
     right: 16px;
     width: 44px;
     height: 44px;
   }
-
-  .typing-container {
-    margin-left: 25px;
-  }
 }
 
-@media (max-width: 480px) {
-  .profile-name {
-    font-size: 3rem;
+@media (max-width: 380px) {
+  .name {
+    font-size: 1.5rem;
   }
-  
-  .profile-title h2 {
-    font-size: 2rem;
+
+  .socials {
+    gap: 8px;
   }
-  
-  .typing-container {
-    font-size: 1.25rem;
-    height: 2rem;
-  }
-  
-  .avatar {
-    width: 200px;
-    height: 200px;
-  }
-  
-  .avatar-tooltip-img {
-    width: 280px;
-    height: 280px;
-  }
-  
-  .stat-item {
-    padding: 12px 16px;
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .theme-toggle {
-    width: 40px;
-    height: 40px;
-    font-size: 16px;
+
+  .social-link {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
   }
 }
 </style>
