@@ -2,12 +2,13 @@
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faLinkedin, faGithub, faYoutube, faXTwitter } from '@fortawesome/free-brands-svg-icons'
 import { faHeart, faCode, faSun, faMoon, faThumbsUp } from '@fortawesome/free-solid-svg-icons'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import yhyImage from './assets/yhy.png'
 
 import { getDatabase, ref as dbRef, onValue, set } from 'firebase/database'
 
-const isDarkMode = ref(true)
+const isDarkMode = ref(false)
+const activeSection = ref('home')
 
 const db = getDatabase()
 const likeCount = ref(0)
@@ -22,18 +23,11 @@ const showCombo = ref(false)
 let comboTimeout = null
 
 const handleLike = (event) => {
-  
-  if (!event.isTrusted) {
-    return
-  }
-
+  if (!event.isTrusted) return
   set(likeRef, likeCount.value + 1)
-  
   clickCombo.value++
   showCombo.value = true
-  
   clearTimeout(comboTimeout)
-
   comboTimeout = setTimeout(() => {
     clickCombo.value = 0
     showCombo.value = false
@@ -47,16 +41,7 @@ onMounted(() => {
   } else {
     isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches
   }
-  
   applyTheme()
-  
-  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-  mediaQuery.addEventListener('change', (e) => {
-    if (localStorage.getItem('theme') === null) {
-      isDarkMode.value = e.matches
-      applyTheme()
-    }
-  })
 })
 
 const toggleTheme = () => {
@@ -94,7 +79,7 @@ function formatDiff(diff) {
   diff -= hours * MS_PER_HOUR
   const minutes = Math.floor(diff / MS_PER_MIN)
 
-  return `${years}Y ${months}M ${days}D ${hours}H ${minutes}M`
+  return `${years}y ${months}m ${days}d ${hours}h ${minutes}m`
 }
 
 function updateTime() {
@@ -112,32 +97,34 @@ onUnmounted(() => {
   if (intervalId) clearInterval(intervalId)
 })
 
-const titles = [
-  "JavaScript",
-  "HTML & CSS",
-  "Vue.js",
-  "React.js",
-  "Express.js",
-  "jQuery",
-  "Bootstrap",
-  "Material UI",
-  "Microsoft SQL Server",
-  "PostgreSQL",
-  "C#",
-  "ASP.NET Core",
-  "Git & GitHub",
-  "REST APIs",
-  "VS Code",
-  "Postman",
-  "Rider"
+const skills = [
+  { name: "JavaScript", category: "language" },
+  { name: "C#", category: "language" },
+  { name: "HTML & CSS", category: "language" },
+  { name: "Vue.js", category: "frontend" },
+  { name: "React.js", category: "frontend" },
+  { name: "Bootstrap", category: "frontend" },
+  { name: "Material UI", category: "frontend" },
+  { name: "jQuery", category: "frontend" },
+  { name: "Express.js", category: "backend" },
+  { name: "ASP.NET Core", category: "backend" },
+  { name: "REST APIs", category: "backend" },
+  { name: "PostgreSQL", category: "data" },
+  { name: "MS SQL Server", category: "data" },
+  { name: "Git & GitHub", category: "tools" },
+  { name: "VS Code", category: "tools" },
+  { name: "Postman", category: "tools" },
+  { name: "Rider", category: "tools" },
 ]
 
 const typingTitle = ref("")
 const typingCursor = ref(true)
-const typingSpeed = 100
-const erasingSpeed = 50
-const delayAfterTyping = 1500
-const delayAfterErasing = 300
+const typingSpeed = 90
+const erasingSpeed = 40
+const delayAfterTyping = 2000
+const delayAfterErasing = 400
+
+const roleTitles = ["Full Stack Developer"]
 
 let typingCharIndex = 0
 let titleIndex = 0
@@ -146,8 +133,8 @@ let erasingTimeoutId = null
 
 function typeTitle() {
   typingCursor.value = true
-  if (typingCharIndex < titles[titleIndex].length) {
-    typingTitle.value += titles[titleIndex][typingCharIndex]
+  if (typingCharIndex < roleTitles[titleIndex].length) {
+    typingTitle.value += roleTitles[titleIndex][typingCharIndex]
     typingCharIndex++
     typingIntervalId = setTimeout(typeTitle, typingSpeed)
   } else {
@@ -162,7 +149,7 @@ function eraseTitle() {
     typingCharIndex--
     typingIntervalId = setTimeout(eraseTitle, erasingSpeed)
   } else {
-    titleIndex = (titleIndex + 1) % titles.length
+    titleIndex = (titleIndex + 1) % roleTitles.length
     typingIntervalId = setTimeout(typeTitle, delayAfterErasing)
   }
 }
@@ -178,253 +165,419 @@ onUnmounted(() => {
   if (typingIntervalId) clearTimeout(typingIntervalId)
   if (erasingTimeoutId) clearTimeout(erasingTimeoutId)
 })
+
+const scrollToSection = (id) => {
+  activeSection.value = id
+  const el = document.getElementById(id)
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+const formattedLikeCount = computed(() => {
+  return likeCount.value.toLocaleString()
+})
 </script>
 
 <template>
-  <div class="app-wrapper">
-    <button class="theme-toggle" @click="toggleTheme" aria-label="Toggle theme">
-      <FontAwesomeIcon :icon="isDarkMode ? faSun : faMoon" />
-    </button>
+  <div class="app-wrapper" :class="{ dark: isDarkMode }">
+    <!-- Frosted Glass Navigation Bar -->
+    <nav class="glass-nav">
+      <div class="nav-inner">
+        <span class="nav-logo">YHY</span>
+        <div class="nav-links">
+          <button
+            v-for="section in ['home', 'skills', 'connect']"
+            :key="section"
+            class="nav-link"
+            :class="{ active: activeSection === section }"
+            @click="scrollToSection(section)"
+          >
+            {{ section.charAt(0).toUpperCase() + section.slice(1) }}
+          </button>
+        </div>
+        <button class="theme-pill" @click="toggleTheme" aria-label="Toggle theme">
+          <FontAwesomeIcon :icon="isDarkMode ? faSun : faMoon" />
+        </button>
+      </div>
+    </nav>
 
-    <main class="main-content">
-      <div class="card">
-        <div class="avatar-wrapper">
-          <div class="avatar">
-            <img :src="yhyImage" alt="Yahya ALTINTOP" />
+    <!-- Hero Section -->
+    <section id="home" class="section hero-section">
+      <div class="hero-content">
+        <div class="avatar-container">
+          <div class="avatar-ring">
+            <img :src="yhyImage" alt="Yahya ALTINTOP" class="avatar-img" />
           </div>
         </div>
 
-        <div class="info">
-          <h1 class="name">Yahya ALTINTOP</h1>
-          <p class="role">Full Stack Developer</p>
-          
-          <div class="typing-wrapper">
-            <span class="typing-text">{{ typingTitle }}</span>
-            <span class="cursor" v-if="typingCursor">|</span>
-          </div>
+        <h1 class="hero-name">
+          Yahya<br /><span class="hero-name-accent">ALTINTOP</span>
+        </h1>
 
-          <div class="stats">
-            <div class="stat">
-              <span class="stat-icon">
-                <FontAwesomeIcon :icon="faHeart" beat-fade />
-              </span>
-              <div class="stat-content">
-                <span class="stat-label">Alive</span>
-                <span class="stat-value">{{ ageStr }}</span>
-              </div>
+        <div class="typing-wrapper">
+          <span class="typing-text">{{ typingTitle }}</span>
+          <span class="typing-cursor" v-if="typingCursor">|</span>
+        </div>
+
+        <div class="hero-metrics">
+          <div class="metric-card">
+            <div class="metric-icon">
+              <FontAwesomeIcon :icon="faHeart" beat-fade />
             </div>
-            <div class="stat">
-              <span class="stat-icon">
-                <FontAwesomeIcon :icon="faCode" flip />
-              </span>
-              <div class="stat-content">
-                <span class="stat-label">Coding</span>
-                <span class="stat-value">{{ codingStr }}</span>
-              </div>
+            <div class="metric-body">
+              <span class="metric-label">Alive</span>
+              <span class="metric-value">{{ ageStr }}</span>
             </div>
           </div>
-
-          <div class="socials">
-            <a href="https://linkedin.com/in/yahyaaltintop" target="_blank" aria-label="LinkedIn" class="social-link linkedin">
-              <FontAwesomeIcon :icon="faLinkedin" />
-            </a>
-            <a href="https://github.com/YahyaAltintop" target="_blank" aria-label="GitHub" class="social-link github">
-              <FontAwesomeIcon :icon="faGithub" />
-            </a>
-            <a href="https://youtube.com/@yahyaaltintop" target="_blank" aria-label="YouTube" class="social-link youtube">
-              <FontAwesomeIcon :icon="faYoutube" />
-            </a>
-            <a href="https://twitter.com/Yahyaltintop" target="_blank" aria-label="X" class="social-link twitter">
-              <FontAwesomeIcon :icon="faXTwitter" />
-            </a>
-          </div>
-          <div class="like-section">
-            <button class="like-button" @click="handleLike" aria-label="Like">
-              <FontAwesomeIcon :icon="faThumbsUp" />
-              <span class="like-count">{{ likeCount }}</span>
-              <transition name="combo-pop">
-                <span v-if="showCombo && clickCombo >= 5" class="combo-badge" :class="{ 'combo-fire': clickCombo >= 20 && clickCombo < 50, 'combo-crazy': clickCombo >= 50 && clickCombo < 100, 'combo-greatest': clickCombo >= 100 }">
-                  x{{ clickCombo }}
-                </span>
-              </transition>
-            </button>
+          <div class="metric-card">
+            <div class="metric-icon">
+              <FontAwesomeIcon :icon="faCode" flip />
+            </div>
+            <div class="metric-body">
+              <span class="metric-label">Coding</span>
+              <span class="metric-value">{{ codingStr }}</span>
+            </div>
           </div>
         </div>
       </div>
-    </main>
+    </section>
+
+    <!-- Skills Section -->
+    <section id="skills" class="section skills-section">
+      <h2 class="section-title">What I Work With</h2>
+      <p class="section-subtitle">Technologies & tools in my stack.</p>
+
+      <div class="skills-grid">
+        <div v-for="skill in skills" :key="skill.name" class="skill-chip">
+          {{ skill.name }}
+        </div>
+      </div>
+    </section>
+
+    <!-- Connect Section -->
+    <section id="connect" class="section connect-section">
+      <h2 class="section-title">Let's Connect</h2>
+      <p class="section-subtitle">Find me across the internet.</p>
+
+      <div class="social-row">
+        <a href="https://linkedin.com/in/yahyaaltintop" target="_blank" aria-label="LinkedIn" class="social-pill">
+          <FontAwesomeIcon :icon="faLinkedin" />
+          <span>LinkedIn</span>
+        </a>
+        <a href="https://github.com/YahyaAltintop" target="_blank" aria-label="GitHub" class="social-pill">
+          <FontAwesomeIcon :icon="faGithub" />
+          <span>GitHub</span>
+        </a>
+        <a href="https://youtube.com/@yahyaaltintop" target="_blank" aria-label="YouTube" class="social-pill">
+          <FontAwesomeIcon :icon="faYoutube" />
+          <span>YouTube</span>
+        </a>
+        <a href="https://twitter.com/Yahyaltintop" target="_blank" aria-label="X / Twitter" class="social-pill">
+          <FontAwesomeIcon :icon="faXTwitter" />
+          <span>X</span>
+        </a>
+      </div>
+
+      <div class="like-area">
+        <button class="like-pill" @click="handleLike" aria-label="Like this page">
+          <FontAwesomeIcon :icon="faThumbsUp" />
+          <span class="like-label">{{ formattedLikeCount }}</span>
+          <transition name="combo-pop">
+            <span
+              v-if="showCombo && clickCombo >= 5"
+              class="combo-badge"
+              :class="{
+                'combo-fire': clickCombo >= 20 && clickCombo < 50,
+                'combo-crazy': clickCombo >= 50 && clickCombo < 100,
+                'combo-greatest': clickCombo >= 100,
+              }"
+            >
+              x{{ clickCombo }}
+            </span>
+          </transition>
+        </button>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <p>&copy; {{ new Date().getFullYear() }} Yahya ALTINTOP</p>
+    </footer>
   </div>
 </template>
 
+<!-- ========== GLOBAL STYLES ========== -->
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 :root {
-  --bg: #f8fafc;
-  --bg-card: #ffffff;
-  --text: #1e293b;
-  --text-muted: #64748b;
-  --accent: #6366f1;
-  --accent-light: #818cf8;
-  --border: #e2e8f0;
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  --radius: 24px;
-  --radius-sm: 16px;
+  /* Starlight / Light palette */
+  --bg:           #f5f5f7;
+  --bg-elevated:  #ffffff;
+  --bg-inset:     #e8e8ed;
+  --text-primary: #1d1d1f;
+  --text-secondary: #86868b;
+  --text-tertiary:  #aeaeb2;
+  --accent:       #1d1d1f;
+  --accent-hover: #424245;
+  --border:       rgba(0, 0, 0, 0.06);
+  --glass-bg:     rgba(245, 245, 247, 0.72);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --clay-shadow:
+    6px 6px 14px rgba(0, 0, 0, 0.06),
+    -4px -4px 10px rgba(255, 255, 255, 0.9);
+  --clay-shadow-inset:
+    inset 2px 2px 5px rgba(0, 0, 0, 0.06),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.7);
+  --radius-pill: 980px;
+  --radius-card: 28px;
+  --transition: 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 [data-theme="dark"] {
-  --bg: #0f172a;
-  --bg-card: #1e293b;
-  --text: #f1f5f9;
-  --text-muted: #94a3b8;
-  --accent: #818cf8;
-  --accent-light: #a5b4fc;
-  --border: #334155;
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  /* Midnight / Dark palette */
+  --bg:           #000000;
+  --bg-elevated:  #1c1c1e;
+  --bg-inset:     #2c2c2e;
+  --text-primary: #f5f5f7;
+  --text-secondary: #86868b;
+  --text-tertiary:  #636366;
+  --accent:       #f5f5f7;
+  --accent-hover: #d1d1d6;
+  --border:       rgba(255, 255, 255, 0.08);
+  --glass-bg:     rgba(28, 28, 30, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --clay-shadow:
+    6px 6px 14px rgba(0, 0, 0, 0.4),
+    -4px -4px 10px rgba(255, 255, 255, 0.02);
+  --clay-shadow-inset:
+    inset 2px 2px 5px rgba(0, 0, 0, 0.3),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.03);
 }
 
-* {
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-html, body {
-  height: 100%;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+html {
+  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg);
-  color: var(--text);
-  transition: background 0.3s ease, color 0.3s ease;
+  color: var(--text-primary);
+  transition: background var(--transition), color var(--transition);
+  line-height: 1.47059;
+  letter-spacing: -0.022em;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
 }
 </style>
 
+<!-- ========== SCOPED STYLES ========== -->
 <style scoped>
+/* ---- Layout ---- */
 .app-wrapper {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  position: relative;
-}
-
-/* Theme Toggle */
-.theme-toggle {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  z-index: 100;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: none;
-  background: var(--bg-card);
-  color: var(--text);
-  font-size: 18px;
-  cursor: pointer;
-  box-shadow: var(--shadow);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.theme-toggle:hover {
-  transform: scale(1.05);
-  box-shadow: var(--shadow-lg);
-}
-
-/* Main Content */
-.main-content {
-  width: 100%;
-  max-width: 600px;
-}
-
-/* Card */
-.card {
-  background: var(--bg-card);
-  border-radius: var(--radius);
-  padding: 48px;
-  box-shadow: var(--shadow-xl);
-  border: 1px solid var(--border);
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-/* Avatar */
-.avatar-wrapper {
-  position: relative;
-  display: inline-block;
-  margin-bottom: 32px;
-}
-
-.avatar {
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 4px solid var(--border);
-  box-shadow: var(--shadow-lg);
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.avatar:hover {
-  transform: scale(1.02);
-  border-color: var(--accent);
-}
-
-.avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* Info */
-.info {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.name {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 4px;
-  letter-spacing: -0.02em;
+/* ---- Frosted Glass Nav ---- */
+.glass-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  background: var(--glass-bg);
+  border-bottom: 0.5px solid var(--glass-border);
 }
 
-.role {
-  font-size: 1.1rem;
-  color: var(--text-muted);
-  margin-bottom: 8px;
+.nav-inner {
+  max-width: 980px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 48px;
+}
+
+.nav-logo {
+  font-weight: 800;
+  font-size: 1.125rem;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  user-select: none;
+}
+
+.nav-links {
+  display: flex;
+  gap: 8px;
+}
+
+.nav-link {
+  background: none;
+  border: none;
+  font-size: 0.8125rem;
   font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  transition: all var(--transition);
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+  background: var(--border);
+}
+
+.nav-link.active {
+  color: var(--text-primary);
+  background: var(--border);
+}
+
+.theme-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-inset);
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: var(--clay-shadow);
+}
+
+.theme-pill:hover {
+  color: var(--text-primary);
+  box-shadow: var(--clay-shadow-inset);
+}
+
+/* ---- Section ---- */
+.section {
+  width: 100%;
+  max-width: 980px;
+  padding: 0 24px;
+}
+
+/* ---- Hero Section ---- */
+.hero-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 48px;
+}
+
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0;
+}
+
+/* Avatar */
+.avatar-container {
+  margin-bottom: 48px;
+}
+
+.avatar-ring {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: var(--clay-shadow);
+  border: 3px solid var(--border);
+  transition: all var(--transition);
+}
+
+.avatar-ring:hover {
+  transform: scale(1.03);
+  box-shadow:
+    8px 8px 20px rgba(0, 0, 0, 0.08),
+    -6px -6px 14px rgba(255, 255, 255, 0.95);
+}
+
+[data-theme="dark"] .avatar-ring:hover {
+  box-shadow:
+    8px 8px 20px rgba(0, 0, 0, 0.55),
+    -6px -6px 14px rgba(255, 255, 255, 0.03);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Hero Name */
+.hero-name {
+  font-size: clamp(3rem, 8vw, 5rem);
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: -0.045em;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.hero-name-accent {
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Typing */
 .typing-wrapper {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 1rem;
-  color: var(--accent);
-  margin-bottom: 32px;
-  height: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  height: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 56px;
+  font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
 }
 
 .typing-text {
-  color: var(--accent);
+  color: var(--text-secondary);
 }
 
-.cursor {
-  animation: blink 0.8s infinite;
+.typing-cursor {
+  animation: blink 0.9s step-end infinite;
   font-weight: 300;
   margin-left: 2px;
+  color: var(--text-tertiary);
 }
 
 @keyframes blink {
@@ -432,208 +585,265 @@ html, body {
   51%, 100% { opacity: 0; }
 }
 
-/* Stats */
-.stats {
+/* Metrics */
+.hero-metrics {
   display: flex;
-  gap: 16px;
-  margin-bottom: 32px;
+  gap: 20px;
   flex-wrap: wrap;
   justify-content: center;
 }
 
-.stat {
+.metric-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  background: var(--bg);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  transition: all 0.2s ease;
+  gap: 16px;
+  padding: 20px 28px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-card);
+  box-shadow: var(--clay-shadow);
+  border: 0.5px solid var(--border);
+  transition: all var(--transition);
 }
 
-.stat:hover {
-  border-color: var(--accent);
+.metric-card:hover {
   transform: translateY(-2px);
+  box-shadow:
+    8px 8px 18px rgba(0, 0, 0, 0.08),
+    -6px -6px 12px rgba(255, 255, 255, 0.9);
 }
 
-.stat-icon {
+[data-theme="dark"] .metric-card:hover {
+  box-shadow:
+    8px 8px 18px rgba(0, 0, 0, 0.5),
+    -6px -6px 12px rgba(255, 255, 255, 0.02);
+}
+
+.metric-icon {
   font-size: 1.25rem;
-  color: var(--accent);
-  width: 32px;
-  height: 32px;
+  color: var(--text-secondary);
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--bg-inset);
+  border-radius: 12px;
 }
 
-.stat-content {
+.metric-body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
 }
 
-.stat-label {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.stat-value {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.875rem;
-  color: var(--text);
+.metric-label {
+  font-size: 0.6875rem;
   font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
-/* Social Links */
-.socials {
+.metric-value {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
+  letter-spacing: 0;
+}
+
+/* ---- Skills Section ---- */
+.skills-section {
+  padding-top: 120px;
+  padding-bottom: 120px;
+  text-align: center;
+}
+
+.section-title {
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.section-subtitle {
+  font-size: 1.125rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-bottom: 56px;
+}
+
+.skills-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.skill-chip {
+  padding: 12px 28px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-pill);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  box-shadow: var(--clay-shadow);
+  border: 0.5px solid var(--border);
+  transition: all var(--transition);
+  cursor: default;
+  user-select: none;
+}
+
+.skill-chip:hover {
+  box-shadow: var(--clay-shadow-inset);
+  transform: scale(0.97);
+}
+
+/* ---- Connect Section ---- */
+.connect-section {
+  padding-top: 80px;
+  padding-bottom: 120px;
+  text-align: center;
+}
+
+.social-row {
   display: flex;
   gap: 12px;
-}
-
-.social-link {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--bg);
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
   justify-content: center;
-  font-size: 20px;
-  border: 1px solid var(--border);
-  transition: all 0.2s ease;
+  flex-wrap: wrap;
+  margin-bottom: 48px;
 }
 
-.social-link:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow);
-}
-
-.social-link.linkedin:hover {
-  color: #0077b5;
-  border-color: #0077b5;
-  background: rgba(0, 119, 181, 0.1);
-}
-
-.social-link.github:hover {
-  color: var(--text);
-  border-color: var(--text);
-}
-
-.social-link.youtube:hover {
-  color: #ff0000;
-  border-color: #ff0000;
-  background: rgba(255, 0, 0, 0.1);
-}
-
-.social-link.twitter:hover {
-  color: #1da1f2;
-  border-color: #1da1f2;
-  background: rgba(29, 161, 242, 0.1);
-}
-
-/* Like Button */
-.like-section {
-  margin-top: 24px;
-}
-
-.like-button {
+.social-pill {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.like-button:hover {
-  color: #e91e63;
-  border-color: #e91e63;
-  background: rgba(233, 30, 99, 0.1);
-  transform: translateY(-2px);
-}
-
-.like-button:active {
-  transform: scale(0.95);
-}
-
-.like-count {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  gap: 10px;
+  padding: 14px 32px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-pill);
+  font-size: 0.9375rem;
   font-weight: 600;
+  color: var(--text-primary);
+  box-shadow: var(--clay-shadow);
+  border: 0.5px solid var(--border);
+  transition: all var(--transition);
+  text-decoration: none;
+}
+
+.social-pill:hover {
+  box-shadow: var(--clay-shadow-inset);
+  transform: scale(0.97);
+  color: var(--text-secondary);
+}
+
+.social-pill svg {
+  font-size: 1.125rem;
+}
+
+/* ---- Like ---- */
+.like-area {
+  display: flex;
+  justify-content: center;
+}
+
+.like-pill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 36px;
+  background: var(--text-primary);
+  color: var(--bg);
+  border: none;
+  border-radius: var(--radius-pill);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+  touch-action: manipulation;
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.like-pill:hover {
+  transform: scale(1.04);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.like-pill:active {
+  transform: scale(0.97);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.like-label {
+  font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
+  font-weight: 800;
 }
 
 /* Combo Badge */
 .combo-badge {
   position: absolute;
-  top: -12px;
-  right: -12px;
-  background: var(--accent);
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
-  animation: pulse 0.3s ease;
+  top: -10px;
+  right: -10px;
+  background: var(--text-secondary);
+  color: var(--bg);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  animation: combo-pulse 0.3s ease;
 }
 
 .combo-badge.combo-fire {
-  background: linear-gradient(135deg, #f97316, #ef4444);
-  box-shadow: 0 2px 12px rgba(239, 68, 68, 0.5);
-  animation: shake 0.3s ease;
+  background: linear-gradient(135deg, #ff6b35, #e63946);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(230, 57, 70, 0.4);
+  animation: combo-shake 0.3s ease;
 }
 
 .combo-badge.combo-crazy {
-  background: linear-gradient(135deg, #ec4899, #8b5cf6);
-  box-shadow: 0 2px 16px rgba(139, 92, 246, 0.6);
-  animation: shake 0.3s ease, glow 0.5s ease infinite alternate;
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  color: #fff;
+  box-shadow: 0 2px 16px rgba(99, 102, 241, 0.5);
+  animation: combo-shake 0.3s ease, combo-glow 0.6s ease infinite alternate;
 }
 
 .combo-badge.combo-greatest {
   background: linear-gradient(135deg, #fbbf24, #f59e0b, #ef4444);
-  box-shadow: 0 2px 20px rgba(251, 191, 36, 0.7);
-  animation: shake 0.3s ease, rainbow-glow 1s ease infinite alternate;
-  font-size: 0.85rem;
-  padding: 5px 10px;
+  color: #fff;
+  box-shadow: 0 2px 24px rgba(251, 191, 36, 0.6);
+  animation: combo-shake 0.3s ease, combo-glow 0.8s ease infinite alternate;
+  font-size: 0.8125rem;
+  padding: 5px 12px;
 }
 
-@keyframes pulse {
+@keyframes combo-pulse {
   0% { transform: scale(0.5); opacity: 0; }
-  50% { transform: scale(1.2); }
+  60% { transform: scale(1.15); }
   100% { transform: scale(1); opacity: 1; }
 }
 
-@keyframes shake {
+@keyframes combo-shake {
   0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-3px) rotate(-2deg); }
-  75% { transform: translateX(3px) rotate(2deg); }
+  25% { transform: translateX(-2px) rotate(-1deg); }
+  75% { transform: translateX(2px) rotate(1deg); }
 }
 
-@keyframes glow {
-  from { box-shadow: 0 2px 16px rgba(139, 92, 246, 0.6); }
-  to { box-shadow: 0 2px 24px rgba(236, 72, 153, 0.8); }
+@keyframes combo-glow {
+  from { box-shadow: 0 2px 16px rgba(99, 102, 241, 0.5); }
+  to   { box-shadow: 0 2px 28px rgba(168, 85, 247, 0.7); }
 }
 
-@keyframes rainbow-glow {
-  0% { box-shadow: 0 2px 20px rgba(251, 191, 36, 0.8); }
-  33% { box-shadow: 0 2px 24px rgba(245, 158, 11, 0.9); }
-  66% { box-shadow: 0 2px 28px rgba(239, 68, 68, 0.9); }
-  100% { box-shadow: 0 2px 32px rgba(251, 191, 36, 1); }
-}
-
-/* Combo Transition */
 .combo-pop-enter-active {
-  animation: pulse 0.3s ease;
+  animation: combo-pulse 0.3s ease;
 }
 
 .combo-pop-leave-active {
@@ -642,69 +852,91 @@ html, body {
 
 .combo-pop-leave-to {
   opacity: 0;
-  transform: scale(0.5) translateY(-10px);
+  transform: scale(0.5) translateY(-8px);
 }
 
-.like-button {
-  position: relative;
+/* ---- Footer ---- */
+.site-footer {
+  width: 100%;
+  text-align: center;
+  padding: 32px 24px 48px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  letter-spacing: -0.01em;
 }
 
-/* Responsive */
-@media (max-width: 640px) {
-  .card {
-    padding: 32px 24px;
-    border-radius: 20px;
+/* ---- Responsive ---- */
+@media (max-width: 734px) {
+  .nav-inner {
+    padding: 0 16px;
   }
 
-  .name {
-    font-size: 1.75rem;
+  .hero-name {
+    font-size: clamp(2.5rem, 10vw, 3.5rem);
   }
 
-  .role {
-    font-size: 1rem;
+  .avatar-ring {
+    width: 140px;
+    height: 140px;
   }
 
-  .stats {
+  .avatar-container {
+    margin-bottom: 36px;
+  }
+
+  .hero-metrics {
     flex-direction: column;
     width: 100%;
+    padding: 0 8px;
   }
 
-  .stat {
+  .metric-card {
     width: 100%;
     justify-content: center;
   }
 
-  .avatar {
-    width: 120px;
-    height: 120px;
+  .section-title {
+    font-size: clamp(2rem, 8vw, 3rem);
   }
 
-  .avatar-enlarged img {
-    width: 260px;
-    height: 260px;
-  }
-
-  .theme-toggle {
-    top: 16px;
-    right: 16px;
-    width: 44px;
-    height: 44px;
-  }
-}
-
-@media (max-width: 380px) {
-  .name {
-    font-size: 1.5rem;
-  }
-
-  .socials {
+  .skills-grid {
     gap: 8px;
   }
 
-  .social-link {
-    width: 44px;
-    height: 44px;
-    font-size: 18px;
+  .skill-chip {
+    padding: 10px 20px;
+    font-size: 0.875rem;
+  }
+
+  .social-row {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .social-pill {
+    width: 100%;
+    max-width: 280px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero-name {
+    font-size: 2.25rem;
+  }
+
+  .typing-wrapper {
+    font-size: 1rem;
+  }
+
+  .nav-links {
+    gap: 4px;
+  }
+
+  .nav-link {
+    padding: 6px 10px;
+    font-size: 0.75rem;
   }
 }
 </style>
