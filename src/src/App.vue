@@ -1,11 +1,12 @@
 <script setup>
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faLinkedin, faGithub, faYoutube, faXTwitter } from '@fortawesome/free-brands-svg-icons'
-import { faHeart, faCode, faSun, faMoon, faThumbsUp } from '@fortawesome/free-solid-svg-icons'
+import { faHeart, faCode, faSun, faMoon, faThumbsUp, faEye } from '@fortawesome/free-solid-svg-icons'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import yhyImage from './assets/yhy.png'
+import SpaceBackground from './components/SpaceBackground.vue'
 
-import { getDatabase, ref as dbRef, onValue, set } from 'firebase/database'
+import { getDatabase, ref as dbRef, onValue, set, runTransaction } from 'firebase/database'
 
 const isDarkMode = ref(false)
 const activeSection = ref('home')
@@ -16,6 +17,17 @@ const likeRef = dbRef(db, 'likes')
 
 onValue(likeRef, (snapshot) => {
   likeCount.value = snapshot.val() || 0
+})
+
+const visitorCount = ref(0)
+const visitorRef = dbRef(db, 'visitors')
+
+onValue(visitorRef, (snapshot) => {
+  visitorCount.value = snapshot.val() || 0
+})
+
+onMounted(() => {
+  runTransaction(visitorRef, (current) => (current || 0) + 1)
 })
 
 const clickCombo = ref(0)
@@ -34,14 +46,28 @@ const handleLike = (event) => {
   }, 5000)
 }
 
+const systemThemeMedia = window.matchMedia('(prefers-color-scheme: dark)')
+
+const handleSystemThemeChange = (e) => {
+  if (!localStorage.getItem('theme')) {
+    isDarkMode.value = e.matches
+    applyTheme()
+  }
+}
+
 onMounted(() => {
   const savedTheme = localStorage.getItem('theme')
   if (savedTheme) {
     isDarkMode.value = savedTheme === 'dark'
   } else {
-    isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+    isDarkMode.value = systemThemeMedia.matches
   }
   applyTheme()
+  systemThemeMedia.addEventListener('change', handleSystemThemeChange)
+})
+
+onUnmounted(() => {
+  systemThemeMedia.removeEventListener('change', handleSystemThemeChange)
 })
 
 const toggleTheme = () => {
@@ -175,10 +201,17 @@ const scrollToSection = (id) => {
 const formattedLikeCount = computed(() => {
   return likeCount.value.toLocaleString()
 })
+
+const formattedVisitorCount = computed(() => {
+  return visitorCount.value.toLocaleString()
+})
 </script>
 
 <template>
   <div class="app-wrapper" :class="{ dark: isDarkMode }">
+    <!-- Live Space Background (stars + SpaceX rocket) -->
+    <SpaceBackground :dark="isDarkMode" />
+
     <!-- Frosted Glass Navigation Bar -->
     <nav class="glass-nav">
       <div class="nav-inner">
@@ -205,7 +238,7 @@ const formattedLikeCount = computed(() => {
       <div class="hero-content">
         <div class="avatar-container">
           <div class="avatar-ring">
-            <img :src="yhyImage" alt="Yahya ALTINTOP" class="avatar-img" />
+            <img :src="yhyImage" alt="Yahya ALTINTOP" loading="lazy" class="avatar-img" />
           </div>
         </div>
 
@@ -235,6 +268,15 @@ const formattedLikeCount = computed(() => {
             <div class="metric-body">
               <span class="metric-label">Coding</span>
               <span class="metric-value">{{ codingStr }}</span>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon">
+              <FontAwesomeIcon :icon="faEye" />
+            </div>
+            <div class="metric-body">
+              <span class="metric-label">Visitors</span>
+              <span class="metric-value">{{ formattedVisitorCount }}</span>
             </div>
           </div>
         </div>
@@ -395,6 +437,8 @@ button {
 <style scoped>
 /* ---- Layout ---- */
 .app-wrapper {
+  position: relative;
+  z-index: 1;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
