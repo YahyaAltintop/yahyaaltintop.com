@@ -1,50 +1,16 @@
 <script setup>
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faLinkedin, faGithub, faYoutube, faXTwitter } from '@fortawesome/free-brands-svg-icons'
-import { faHeart, faCode, faSun, faMoon, faThumbsUp, faEye } from '@fortawesome/free-solid-svg-icons'
+import { faHeart, faCode, faSun, faMoon, faThumbsUp } from '@fortawesome/free-solid-svg-icons'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import yhyImage from './assets/yhy.png'
-import SpaceBackground from './components/SpaceBackground.vue'
+import BlueprintBackground from './components/BlueprintBackground.vue'
 
 import { getDatabase, ref as dbRef, onValue, set, runTransaction } from 'firebase/database'
 
+/* ---- Theme ---- */
 const isDarkMode = ref(false)
-const activeSection = ref('home')
-
-const db = getDatabase()
-const likeCount = ref(0)
-const likeRef = dbRef(db, 'likes')
-
-onValue(likeRef, (snapshot) => {
-  likeCount.value = snapshot.val() || 0
-})
-
-const visitorCount = ref(0)
-const visitorRef = dbRef(db, 'visitors')
-
-onValue(visitorRef, (snapshot) => {
-  visitorCount.value = snapshot.val() || 0
-})
-
-onMounted(() => {
-  runTransaction(visitorRef, (current) => (current || 0) + 1)
-})
-
-const clickCombo = ref(0)
-const showCombo = ref(false)
-let comboTimeout = null
-
-const handleLike = (event) => {
-  if (!event.isTrusted) return
-  set(likeRef, likeCount.value + 1)
-  clickCombo.value++
-  showCombo.value = true
-  clearTimeout(comboTimeout)
-  comboTimeout = setTimeout(() => {
-    clickCombo.value = 0
-    showCombo.value = false
-  }, 5000)
-}
+const activeSection = ref('top')
 
 const systemThemeMedia = window.matchMedia('(prefers-color-scheme: dark)')
 
@@ -80,6 +46,41 @@ const applyTheme = () => {
   document.documentElement.setAttribute('data-theme', isDarkMode.value ? 'dark' : 'light')
 }
 
+/* ---- Firebase: likes & visitors ---- */
+const db = getDatabase()
+const likeCount = ref(0)
+const likeRef = dbRef(db, 'likes')
+
+onValue(likeRef, (snapshot) => {
+  likeCount.value = snapshot.val() || 0
+})
+
+/* Visitor tracking (background only, not displayed) */
+const visitorRef = dbRef(db, 'visitors')
+
+onMounted(() => {
+  runTransaction(visitorRef, (current) => (current || 0) + 1)
+})
+
+const clickCombo = ref(0)
+const showCombo = ref(false)
+let comboTimeout = null
+
+const handleLike = (event) => {
+  if (!event.isTrusted) return
+  set(likeRef, likeCount.value + 1)
+  clickCombo.value++
+  showCombo.value = true
+  clearTimeout(comboTimeout)
+  comboTimeout = setTimeout(() => {
+    clickCombo.value = 0
+    showCombo.value = false
+  }, 5000)
+}
+
+const formattedLikeCount = computed(() => likeCount.value.toLocaleString())
+
+/* ---- Live counters (calendar-aware diff) ---- */
 const birthDate = new Date(2005, 2, 6, 12, 40)
 const codingDate = new Date(2020, 6, 17, 9, 40)
 
@@ -88,241 +89,221 @@ const codingStr = ref('')
 
 let intervalId = null
 
-function formatDiff(diff) {
-  const MS_PER_MIN = 60 * 1000
-  const MS_PER_HOUR = 60 * MS_PER_MIN
-  const MS_PER_DAY = 24 * MS_PER_HOUR
-  const MS_PER_MONTH = 30.44 * MS_PER_DAY
-  const MS_PER_YEAR = 365.25 * MS_PER_DAY
+function calendarDiff(from, to) {
+  let years = to.getFullYear() - from.getFullYear()
+  let months = to.getMonth() - from.getMonth()
+  let days = to.getDate() - from.getDate()
+  let hours = to.getHours() - from.getHours()
+  let minutes = to.getMinutes() - from.getMinutes()
 
-  const years = Math.floor(diff / MS_PER_YEAR)
-  diff -= years * MS_PER_YEAR
-  const months = Math.floor(diff / MS_PER_MONTH)
-  diff -= months * MS_PER_MONTH
-  const days = Math.floor(diff / MS_PER_DAY)
-  diff -= days * MS_PER_DAY
-  const hours = Math.floor(diff / MS_PER_HOUR)
-  diff -= hours * MS_PER_HOUR
-  const minutes = Math.floor(diff / MS_PER_MIN)
+  if (minutes < 0) { minutes += 60; hours-- }
+  if (hours < 0) { hours += 24; days-- }
+  if (days < 0) {
+    days += new Date(to.getFullYear(), to.getMonth(), 0).getDate()
+    months--
+  }
+  if (months < 0) { months += 12; years-- }
 
   return `${years}y ${months}m ${days}d ${hours}h ${minutes}m`
 }
 
 function updateTime() {
   const now = new Date()
-  ageStr.value = formatDiff(now - birthDate)
-  codingStr.value = formatDiff(now - codingDate)
+  ageStr.value = calendarDiff(birthDate, now)
+  codingStr.value = calendarDiff(codingDate, now)
 }
 
 onMounted(() => {
   updateTime()
-  intervalId = setInterval(updateTime, 1000 * 5)
+  intervalId = setInterval(updateTime, 1000)
 })
 
 onUnmounted(() => {
   if (intervalId) clearInterval(intervalId)
 })
 
-const skills = [
-  { name: "JavaScript", category: "language" },
-  { name: "C#", category: "language" },
-  { name: "HTML & CSS", category: "language" },
-  { name: "Vue.js", category: "frontend" },
-  { name: "React.js", category: "frontend" },
-  { name: "Bootstrap", category: "frontend" },
-  { name: "Material UI", category: "frontend" },
-  { name: "jQuery", category: "frontend" },
-  { name: "Express.js", category: "backend" },
-  { name: "ASP.NET Core", category: "backend" },
-  { name: "REST APIs", category: "backend" },
-  { name: "PostgreSQL", category: "data" },
-  { name: "MS SQL Server", category: "data" },
-  { name: "Git & GitHub", category: "tools" },
-  { name: "VS Code", category: "tools" },
-  { name: "Postman", category: "tools" },
-  { name: "Rider", category: "tools" },
+/* ---- Typewriter ---- */
+const typed = ref('')
+const phrases = [
+  'Full Stack Developer',
+  'C# & .NET Backend',
+  'Vue & React Frontend',
+  'API Craftsman',
 ]
 
-const typingTitle = ref("")
-const typingCursor = ref(true)
-const typingSpeed = 90
-const erasingSpeed = 40
-const delayAfterTyping = 2000
-const delayAfterErasing = 400
+let phraseIndex = 0
+let charIndex = 0
+let deleting = false
+let typeTimer = null
 
-const roleTitles = ["Full Stack Developer"]
-
-let typingCharIndex = 0
-let titleIndex = 0
-let typingIntervalId = null
-let erasingTimeoutId = null
-
-function typeTitle() {
-  typingCursor.value = true
-  if (typingCharIndex < roleTitles[titleIndex].length) {
-    typingTitle.value += roleTitles[titleIndex][typingCharIndex]
-    typingCharIndex++
-    typingIntervalId = setTimeout(typeTitle, typingSpeed)
+function typeTick() {
+  const phrase = phrases[phraseIndex]
+  if (!deleting) {
+    charIndex++
+    typed.value = phrase.slice(0, charIndex)
+    if (charIndex === phrase.length) {
+      deleting = true
+      typeTimer = setTimeout(typeTick, 1080)
+      return
+    }
   } else {
-    typingIntervalId = setTimeout(eraseTitle, delayAfterTyping)
+    charIndex--
+    typed.value = phrase.slice(0, charIndex)
+    if (charIndex === 0) {
+      deleting = false
+      phraseIndex = (phraseIndex + 1) % phrases.length
+    }
   }
+  typeTimer = setTimeout(typeTick, 90)
 }
 
-function eraseTitle() {
-  typingCursor.value = true
-  if (typingCharIndex > 0) {
-    typingTitle.value = typingTitle.value.slice(0, -1)
-    typingCharIndex--
-    typingIntervalId = setTimeout(eraseTitle, erasingSpeed)
-  } else {
-    titleIndex = (titleIndex + 1) % roleTitles.length
-    typingIntervalId = setTimeout(typeTitle, delayAfterErasing)
-  }
-}
-
-onMounted(() => {
-  typingTitle.value = ""
-  typingCharIndex = 0
-  titleIndex = 0
-  typeTitle()
-})
+onMounted(typeTick)
 
 onUnmounted(() => {
-  if (typingIntervalId) clearTimeout(typingIntervalId)
-  if (erasingTimeoutId) clearTimeout(erasingTimeoutId)
+  if (typeTimer) clearTimeout(typeTimer)
 })
+
+/* ---- Content data ---- */
+const navLinks = [
+  { id: 'top', label: 'Home' },
+  { id: 'skills', label: 'Skills' },
+  { id: 'connect', label: 'Connect' },
+]
+
+const skillGroups = [
+  { label: 'LANGUAGES', items: ['JavaScript', 'C#', 'HTML & CSS'] },
+  { label: 'FRONTEND', items: ['Vue.js', 'React.js', 'Bootstrap', 'Material UI', 'jQuery'] },
+  { label: 'BACKEND', items: ['Express.js', 'ASP.NET Core', 'REST APIs'] },
+  { label: 'DATABASE', items: ['PostgreSQL', 'MS SQL Server'] },
+  { label: 'TOOLS', items: ['Git & GitHub', 'VS Code', 'Postman', 'Rider'] },
+]
+
+const socials = [
+  { label: 'LinkedIn', icon: faLinkedin, href: 'https://linkedin.com/in/yahyaaltintop' },
+  { label: 'GitHub', icon: faGithub, href: 'https://github.com/YahyaAltintop' },
+  { label: 'YouTube', icon: faYoutube, href: 'https://youtube.com/@yahyaaltintop' },
+  { label: 'X', icon: faXTwitter, href: 'https://twitter.com/Yahyaltintop' },
+]
 
 const scrollToSection = (id) => {
   activeSection.value = id
   const el = document.getElementById(id)
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
-
-const formattedLikeCount = computed(() => {
-  return likeCount.value.toLocaleString()
-})
-
-const formattedVisitorCount = computed(() => {
-  return visitorCount.value.toLocaleString()
-})
 </script>
 
 <template>
-  <div class="app-wrapper" :class="{ dark: isDarkMode }">
-    <!-- Live Space Background (stars + SpaceX rocket) -->
-    <SpaceBackground :dark="isDarkMode" />
+  <BlueprintBackground />
 
-    <!-- Frosted Glass Navigation Bar -->
-    <nav class="glass-nav">
-      <div class="nav-inner">
-        <span class="nav-logo">YHY</span>
-        <div class="nav-links">
-          <button
-            v-for="section in ['home', 'skills', 'connect']"
-            :key="section"
-            class="nav-link"
-            :class="{ active: activeSection === section }"
-            @click="scrollToSection(section)"
-          >
-            {{ section.charAt(0).toUpperCase() + section.slice(1) }}
-          </button>
-        </div>
-        <button class="theme-pill" @click="toggleTheme" aria-label="Toggle theme">
-          <FontAwesomeIcon :icon="isDarkMode ? faSun : faMoon" />
-        </button>
+  <!-- Sticky nav -->
+  <nav class="site-nav">
+    <a class="brand" href="#top" @click.prevent="scrollToSection('top')">
+      <span class="brand-mark"></span>
+      <span class="brand-word">YHY</span>
+    </a>
+    <div class="nav-links">
+      <button
+        v-for="link in navLinks"
+        :key="link.id"
+        class="nav-link"
+        :class="{ active: activeSection === link.id }"
+        @click="scrollToSection(link.id)"
+      >
+        {{ link.label }}
+      </button>
+    </div>
+    <button class="theme-toggle" @click="toggleTheme" aria-label="Toggle theme">
+      <FontAwesomeIcon :icon="isDarkMode ? faSun : faMoon" />
+    </button>
+  </nav>
+
+  <main class="page">
+    <!-- Section 1 — Hero -->
+    <section id="top" class="card hero-card">
+      <div class="corner-glow glow-tr"></div>
+
+      <div class="avatar">
+        <img :src="yhyImage" alt="Yahya Altıntop" loading="lazy" class="avatar-img" />
       </div>
-    </nav>
 
-    <!-- Hero Section -->
-    <section id="home" class="section hero-section">
-      <div class="hero-content">
-        <div class="avatar-container">
-          <div class="avatar-ring">
-            <img :src="yhyImage" alt="Yahya ALTINTOP" loading="lazy" class="avatar-img" />
+      <p class="eyebrow">&lt; FULL STACK DEVELOPER /&gt;</p>
+
+      <h1 class="hero-name">
+        <span class="name-solid">Yahya</span>
+        <span class="name-outline">ALTINTOP</span>
+      </h1>
+
+      <p class="typewriter">
+        <span>{{ typed }}</span><span class="type-cursor">_</span>
+      </p>
+
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-icon">
+            <FontAwesomeIcon :icon="faHeart" beat-fade />
+          </div>
+          <div class="stat-body">
+            <span class="stat-label">ALIVE</span>
+            <span class="stat-value">{{ ageStr }}</span>
           </div>
         </div>
-
-        <h1 class="hero-name">
-          Yahya<br /><span class="hero-name-accent">ALTINTOP</span>
-        </h1>
-
-        <div class="typing-wrapper">
-          <span class="typing-text">{{ typingTitle }}</span>
-          <span class="typing-cursor" v-if="typingCursor">|</span>
-        </div>
-
-        <div class="hero-metrics">
-          <div class="metric-card">
-            <div class="metric-icon">
-              <FontAwesomeIcon :icon="faHeart" beat-fade />
-            </div>
-            <div class="metric-body">
-              <span class="metric-label">Alive</span>
-              <span class="metric-value">{{ ageStr }}</span>
-            </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <FontAwesomeIcon :icon="faCode" />
           </div>
-          <div class="metric-card">
-            <div class="metric-icon">
-              <FontAwesomeIcon :icon="faCode" flip />
-            </div>
-            <div class="metric-body">
-              <span class="metric-label">Coding</span>
-              <span class="metric-value">{{ codingStr }}</span>
-            </div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-icon">
-              <FontAwesomeIcon :icon="faEye" />
-            </div>
-            <div class="metric-body">
-              <span class="metric-label">Visitors</span>
-              <span class="metric-value">{{ formattedVisitorCount }}</span>
-            </div>
+          <div class="stat-body">
+            <span class="stat-label">CODING</span>
+            <span class="stat-value">{{ codingStr }}</span>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Skills Section -->
-    <section id="skills" class="section skills-section">
-      <h2 class="section-title">What I Work With</h2>
-      <p class="section-subtitle">Technologies & tools in my stack.</p>
+    <!-- Section 2 — Skills -->
+    <section id="skills" class="card skills-card">
+      <div class="corner-glow glow-tl"></div>
 
-      <div class="skills-grid">
-        <div v-for="skill in skills" :key="skill.name" class="skill-chip">
-          {{ skill.name }}
+      <p class="section-no">01 / STACK</p>
+      <h2 class="section-title">What I<br />Work With</h2>
+      <p class="section-sub">Technologies &amp; tools in my daily stack.</p>
+
+      <div class="skill-groups">
+        <div v-for="group in skillGroups" :key="group.label" class="skill-group">
+          <span class="group-label">{{ group.label }}</span>
+          <div class="pill-row">
+            <span v-for="item in group.items" :key="item" class="skill-pill">{{ item }}</span>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- Connect Section -->
-    <section id="connect" class="section connect-section">
-      <h2 class="section-title">Let's Connect</h2>
-      <p class="section-subtitle">Find me across the internet.</p>
+    <!-- Section 3 — Connect -->
+    <section id="connect" class="card connect-card">
+      <div class="corner-glow glow-br"></div>
+
+      <p class="section-no">02 / CONNECT</p>
+      <h2 class="section-title">Let's<br />Connect</h2>
+      <p class="section-sub">Find me across the internet.</p>
 
       <div class="social-row">
-        <a href="https://linkedin.com/in/yahyaaltintop" target="_blank" aria-label="LinkedIn" class="social-pill">
-          <FontAwesomeIcon :icon="faLinkedin" />
-          <span>LinkedIn</span>
-        </a>
-        <a href="https://github.com/YahyaAltintop" target="_blank" aria-label="GitHub" class="social-pill">
-          <FontAwesomeIcon :icon="faGithub" />
-          <span>GitHub</span>
-        </a>
-        <a href="https://youtube.com/@yahyaaltintop" target="_blank" aria-label="YouTube" class="social-pill">
-          <FontAwesomeIcon :icon="faYoutube" />
-          <span>YouTube</span>
-        </a>
-        <a href="https://twitter.com/Yahyaltintop" target="_blank" aria-label="X / Twitter" class="social-pill">
-          <FontAwesomeIcon :icon="faXTwitter" />
-          <span>X</span>
+        <a
+          v-for="s in socials"
+          :key="s.label"
+          :href="s.href"
+          target="_blank"
+          rel="noopener"
+          :aria-label="s.label"
+          class="social-link"
+        >
+          <FontAwesomeIcon class="social-icon" :icon="s.icon" />
+          <span>{{ s.label }}</span>
         </a>
       </div>
 
       <div class="like-area">
-        <button class="like-pill" @click="handleLike" aria-label="Like this page">
+        <button class="like-btn" @click="handleLike" aria-label="Like this page">
           <FontAwesomeIcon :icon="faThumbsUp" />
-          <span class="like-label">{{ formattedLikeCount }}</span>
+          <span class="like-count">{{ formattedLikeCount }}</span>
           <transition name="combo-pop">
             <span
               v-if="showCombo && clickCombo >= 5"
@@ -338,242 +319,165 @@ const formattedVisitorCount = computed(() => {
           </transition>
         </button>
       </div>
-    </section>
 
-    <!-- Footer -->
-    <footer class="site-footer">
-      <p>&copy; {{ new Date().getFullYear() }} Yahya ALTINTOP</p>
-    </footer>
-  </div>
+      <footer class="footer">
+        © {{ new Date().getFullYear() }} YAHYA ALTINTOP — BUILT WITH INTENT.
+      </footer>
+    </section>
+  </main>
 </template>
 
-<!-- ========== GLOBAL STYLES ========== -->
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
-:root {
-  /* Starlight / Light palette */
-  --bg:           #f5f5f7;
-  --bg-elevated:  #ffffff;
-  --bg-inset:     #e8e8ed;
-  --text-primary: #1d1d1f;
-  --text-secondary: #86868b;
-  --text-tertiary:  #aeaeb2;
-  --accent:       #1d1d1f;
-  --accent-hover: #424245;
-  --border:       rgba(0, 0, 0, 0.06);
-  --glass-bg:     rgba(245, 245, 247, 0.72);
-  --glass-border: rgba(0, 0, 0, 0.08);
-  --clay-shadow:
-    6px 6px 14px rgba(0, 0, 0, 0.06),
-    -4px -4px 10px rgba(255, 255, 255, 0.9);
-  --clay-shadow-inset:
-    inset 2px 2px 5px rgba(0, 0, 0, 0.06),
-    inset -2px -2px 5px rgba(255, 255, 255, 0.7);
-  --radius-pill: 980px;
-  --radius-card: 28px;
-  --transition: 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
-}
-
-[data-theme="dark"] {
-  /* Midnight / Dark palette */
-  --bg:           #000000;
-  --bg-elevated:  #1c1c1e;
-  --bg-inset:     #2c2c2e;
-  --text-primary: #f5f5f7;
-  --text-secondary: #86868b;
-  --text-tertiary:  #636366;
-  --accent:       #f5f5f7;
-  --accent-hover: #d1d1d6;
-  --border:       rgba(255, 255, 255, 0.08);
-  --glass-bg:     rgba(28, 28, 30, 0.72);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --clay-shadow:
-    6px 6px 14px rgba(0, 0, 0, 0.4),
-    -4px -4px 10px rgba(255, 255, 255, 0.02);
-  --clay-shadow-inset:
-    inset 2px 2px 5px rgba(0, 0, 0, 0.3),
-    inset -2px -2px 5px rgba(255, 255, 255, 0.03);
-}
-
-*,
-*::before,
-*::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-html, body {
-  height: 100%;
-}
-
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text-primary);
-  transition: background var(--transition), color var(--transition);
-  line-height: 1.47059;
-  letter-spacing: -0.022em;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button {
-  font-family: inherit;
-}
-</style>
-
-<!-- ========== SCOPED STYLES ========== -->
 <style scoped>
-/* ---- Layout ---- */
-.app-wrapper {
-  position: relative;
-  z-index: 1;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* ---- Frosted Glass Nav ---- */
-.glass-nav {
-  position: fixed;
+/* ---- Nav ---- */
+.site-nav {
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  background: var(--glass-bg);
-  border-bottom: 0.5px solid var(--glass-border);
-}
-
-.nav-inner {
-  max-width: 980px;
-  margin: 0 auto;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  height: 48px;
+  padding: 20px clamp(20px, 6vw, 72px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  border-bottom: 1px solid var(--border);
 }
 
-.nav-logo {
-  font-weight: 800;
-  font-size: 1.125rem;
-  letter-spacing: -0.04em;
-  color: var(--text-primary);
-  user-select: none;
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.brand-mark {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: var(--accent);
+  transform: rotate(45deg);
+}
+
+.brand-word {
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 2px;
 }
 
 .nav-links {
   display: flex;
-  gap: 8px;
+  gap: 4px;
 }
 
 .nav-link {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid transparent;
   background: none;
-  border: none;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--muted);
   cursor: pointer;
-  padding: 6px 16px;
-  border-radius: var(--radius-pill);
-  transition: all var(--transition);
+  transition: color 0.18s, background 0.18s, border-color 0.18s;
 }
 
 .nav-link:hover {
-  color: var(--text-primary);
-  background: var(--border);
+  color: var(--text);
 }
 
 .nav-link.active {
-  color: var(--text-primary);
-  background: var(--border);
+  background: var(--surface);
+  border-color: var(--border);
+  font-weight: 600;
+  color: var(--text);
 }
 
-.theme-pill {
+.theme-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  border: none;
-  background: var(--bg-inset);
-  color: var(--text-secondary);
-  font-size: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 17px;
   cursor: pointer;
-  transition: all var(--transition);
-  box-shadow: var(--clay-shadow);
+  transition: transform 0.18s;
 }
 
-.theme-pill:hover {
-  color: var(--text-primary);
-  box-shadow: var(--clay-shadow-inset);
+.theme-toggle:hover {
+  transform: rotate(20deg);
 }
 
-/* ---- Section ---- */
-.section {
-  width: 100%;
-  max-width: 980px;
-  padding: 0 24px;
-}
-
-/* ---- Hero Section ---- */
-.hero-section {
-  min-height: 100vh;
+/* ---- Page column ---- */
+.page {
+  position: relative;
+  z-index: 1;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(20px, 3.5vh, 40px) clamp(20px, 6vw, 48px) 40px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-top: 48px;
+  flex-direction: column;
+  gap: clamp(28px, 4vw, 44px);
 }
 
-.hero-content {
+/* ---- Cards (per-section tint via --tint) ---- */
+.card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 34px;
+  padding: clamp(40px, 6vw, 72px) clamp(24px, 5vw, 64px);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--tint) 16%, var(--surface)),
+    color-mix(in srgb, var(--tint) 4%, var(--surface))
+  );
+  border: 1px solid color-mix(in srgb, var(--tint) 32%, var(--border));
+  box-shadow: 0 30px 80px -46px color-mix(in srgb, var(--tint) 60%, transparent);
+}
+
+.hero-card {
+  --tint: #2563eb;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 0;
+  padding: clamp(40px, 7vw, 80px) clamp(24px, 5vw, 64px);
 }
 
-/* Avatar */
-.avatar-container {
-  margin-bottom: 48px;
+.skills-card {
+  --tint: #6366f1;
 }
 
-.avatar-ring {
-  width: 180px;
-  height: 180px;
+.connect-card {
+  --tint: #0ea5e9;
+  margin-bottom: 80px;
+}
+
+.corner-glow {
+  position: absolute;
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--tint) 24%, transparent), transparent 68%);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.glow-tr { top: -120px; right: -120px; }
+.glow-tl { top: -130px; left: -110px; }
+.glow-br { bottom: -140px; right: -100px; }
+
+/* ---- Hero ---- */
+.avatar {
+  width: 132px;
+  height: 132px;
   border-radius: 50%;
   overflow: hidden;
-  box-shadow: var(--clay-shadow);
-  border: 3px solid var(--border);
-  transition: all var(--transition);
-}
-
-.avatar-ring:hover {
-  transform: scale(1.03);
-  box-shadow:
-    8px 8px 20px rgba(0, 0, 0, 0.08),
-    -6px -6px 14px rgba(255, 255, 255, 0.95);
-}
-
-[data-theme="dark"] .avatar-ring:hover {
-  box-shadow:
-    8px 8px 20px rgba(0, 0, 0, 0.55),
-    -6px -6px 14px rgba(255, 255, 255, 0.03);
+  border: 3px solid var(--surface);
+  box-shadow: 0 20px 50px -18px var(--glow);
+  animation: floaty 6s ease-in-out infinite;
 }
 
 .avatar-img {
@@ -583,265 +487,262 @@ button {
   display: block;
 }
 
-/* Hero Name */
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.eyebrow {
+  margin-top: 30px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  color: var(--accent);
+}
+
 .hero-name {
-  font-size: clamp(3rem, 8vw, 5rem);
-  font-weight: 900;
-  line-height: 1.04;
-  letter-spacing: -0.045em;
-  color: var(--text-primary);
-  margin-bottom: 16px;
-}
-
-.hero-name-accent {
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Typing */
-.typing-wrapper {
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  height: 2rem;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 56px;
-  font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
+  flex-direction: column;
+  font-size: clamp(58px, 12vw, 170px);
+  font-weight: 700;
+  line-height: 0.86;
+  letter-spacing: -0.04em;
+  margin-top: 18px;
 }
 
-.typing-text {
-  color: var(--text-secondary);
+.name-outline {
+  color: transparent;
+  -webkit-text-stroke: 2px var(--text);
 }
 
-.typing-cursor {
-  animation: blink 0.9s step-end infinite;
-  font-weight: 300;
-  margin-left: 2px;
-  color: var(--text-tertiary);
+.typewriter {
+  margin-top: 26px;
+  font-family: var(--font-mono);
+  font-size: clamp(15px, 2.4vw, 20px);
+  color: var(--muted);
+  min-height: 1.4em;
+}
+
+.type-cursor {
+  color: var(--accent);
+  animation: blink 1s step-end infinite;
 }
 
 @keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
-/* Metrics */
-.hero-metrics {
+/* ---- Stats strip ---- */
+.stats {
   display: flex;
-  gap: 20px;
   flex-wrap: wrap;
+  gap: 16px;
   justify-content: center;
+  margin-top: 48px;
+  width: 100%;
 }
 
-.metric-card {
+.stat-card {
+  flex: 1 1 240px;
+  max-width: 340px;
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 20px 28px;
-  background: var(--bg-elevated);
-  border-radius: var(--radius-card);
-  box-shadow: var(--clay-shadow);
-  border: 0.5px solid var(--border);
-  transition: all var(--transition);
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 22px 24px;
+  box-shadow: 0 14px 40px -28px var(--glow);
 }
 
-.metric-card:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    8px 8px 18px rgba(0, 0, 0, 0.08),
-    -6px -6px 12px rgba(255, 255, 255, 0.9);
-}
-
-[data-theme="dark"] .metric-card:hover {
-  box-shadow:
-    8px 8px 18px rgba(0, 0, 0, 0.5),
-    -6px -6px 12px rgba(255, 255, 255, 0.02);
-}
-
-.metric-icon {
-  font-size: 1.25rem;
-  color: var(--text-secondary);
-  width: 36px;
-  height: 36px;
+.stat-icon {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-inset);
-  border-radius: 12px;
+  border-radius: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-size: 20px;
 }
 
-.metric-body {
+.stat-body {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  min-width: 0;
 }
 
-.metric-label {
-  font-size: 0.6875rem;
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
   font-weight: 600;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 2.5px;
+  color: var(--faint);
 }
 
-.metric-value {
-  font-size: 0.9375rem;
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: clamp(15px, 2.1vw, 20px);
   font-weight: 700;
-  color: var(--text-primary);
-  font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
-  letter-spacing: 0;
+  letter-spacing: -0.5px;
 }
 
-/* ---- Skills Section ---- */
-.skills-section {
-  padding-top: 120px;
-  padding-bottom: 120px;
-  text-align: center;
+/* ---- Section headers ---- */
+.section-no {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  color: var(--tint);
 }
 
 .section-title {
-  font-size: clamp(2.5rem, 6vw, 4rem);
-  font-weight: 900;
+  margin-top: 10px;
+  font-size: clamp(44px, 8vw, 104px);
+  font-weight: 700;
   letter-spacing: -0.04em;
-  line-height: 1.08;
-  color: var(--text-primary);
-  margin-bottom: 12px;
+  line-height: 0.92;
 }
 
-.section-subtitle {
-  font-size: 1.125rem;
-  font-weight: 400;
-  color: var(--text-secondary);
-  margin-bottom: 56px;
+.section-sub {
+  margin-top: 16px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--muted);
 }
 
-.skills-grid {
+/* ---- Skills ---- */
+.skill-groups {
+  margin-top: 48px;
+}
+
+.skill-group {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 24px;
+  align-items: start;
+  padding: 26px 0;
+  border-top: 1px solid var(--border);
+}
+
+.group-label {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--faint);
+  padding-top: 6px;
+}
+
+.pill-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
-  max-width: 680px;
-  margin: 0 auto;
+  gap: 10px;
 }
 
-.skill-chip {
-  padding: 12px 28px;
-  background: var(--bg-elevated);
-  border-radius: var(--radius-pill);
-  font-size: 0.9375rem;
+.skill-pill {
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
   font-weight: 600;
-  color: var(--text-primary);
-  box-shadow: var(--clay-shadow);
-  border: 0.5px solid var(--border);
-  transition: all var(--transition);
+  font-size: 15px;
   cursor: default;
-  user-select: none;
+  transition: transform 0.18s, border-color 0.18s, color 0.18s;
 }
 
-.skill-chip:hover {
-  box-shadow: var(--clay-shadow-inset);
-  transform: scale(0.97);
+.skill-pill:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
-/* ---- Connect Section ---- */
-.connect-section {
-  padding-top: 80px;
-  padding-bottom: 120px;
-  text-align: center;
-}
-
+/* ---- Connect ---- */
 .social-row {
   display: flex;
-  gap: 12px;
-  justify-content: center;
   flex-wrap: wrap;
-  margin-bottom: 48px;
+  gap: 12px;
+  margin-top: 36px;
 }
 
-.social-pill {
+.social-link {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 32px;
-  background: var(--bg-elevated);
-  border-radius: var(--radius-pill);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  box-shadow: var(--clay-shadow);
-  border: 0.5px solid var(--border);
-  transition: all var(--transition);
-  text-decoration: none;
+  gap: 12px;
+  padding: 16px 26px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+  transition: transform 0.18s, border-color 0.18s;
 }
 
-.social-pill:hover {
-  box-shadow: var(--clay-shadow-inset);
-  transform: scale(0.97);
-  color: var(--text-secondary);
+.social-link:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
 }
 
-.social-pill svg {
-  font-size: 1.125rem;
+.social-icon {
+  color: var(--accent);
+  font-size: 18px;
 }
 
 /* ---- Like ---- */
 .like-area {
-  display: flex;
-  justify-content: center;
+  margin-top: 28px;
 }
 
-.like-pill {
+.like-btn {
   position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 36px;
-  background: var(--text-primary);
-  color: var(--bg);
-  border: none;
-  border-radius: var(--radius-pill);
-  font-size: 1rem;
+  gap: 12px;
+  padding: 16px 30px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: var(--accent);
+  color: #fff;
   font-weight: 700;
+  font-size: 16px;
   cursor: pointer;
-  transition: all var(--transition);
   touch-action: manipulation;
-  box-shadow:
-    0 4px 14px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 14px 40px -18px var(--glow);
+  transition: transform 0.18s, box-shadow 0.18s;
 }
 
-.like-pill:hover {
-  transform: scale(1.04);
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.2);
+.like-btn:hover {
+  transform: translateY(-3px);
 }
 
-.like-pill:active {
-  transform: scale(0.97);
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.12);
+.like-btn:active {
+  transform: translateY(0) scale(0.97);
 }
 
-.like-label {
-  font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
-  font-weight: 800;
+.like-count {
+  font-family: var(--font-mono);
+  font-weight: 700;
 }
 
-/* Combo Badge */
+/* Combo badge */
 .combo-badge {
   position: absolute;
   top: -10px;
   right: -10px;
-  background: var(--text-secondary);
-  color: var(--bg);
-  font-size: 0.6875rem;
-  font-weight: 800;
+  background: var(--text);
+  color: var(--surface);
+  font-size: 11px;
+  font-weight: 700;
   padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
+  border-radius: 999px;
+  font-family: var(--font-mono);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
   animation: combo-pulse 0.3s ease;
 }
@@ -865,7 +766,7 @@ button {
   color: #fff;
   box-shadow: 0 2px 24px rgba(251, 191, 36, 0.6);
   animation: combo-shake 0.3s ease, combo-glow 0.8s ease infinite alternate;
-  font-size: 0.8125rem;
+  font-size: 13px;
   padding: 5px 12px;
 }
 
@@ -883,7 +784,7 @@ button {
 
 @keyframes combo-glow {
   from { box-shadow: 0 2px 16px rgba(99, 102, 241, 0.5); }
-  to   { box-shadow: 0 2px 28px rgba(168, 85, 247, 0.7); }
+  to { box-shadow: 0 2px 28px rgba(168, 85, 247, 0.7); }
 }
 
 .combo-pop-enter-active {
@@ -900,87 +801,55 @@ button {
 }
 
 /* ---- Footer ---- */
-.site-footer {
-  width: 100%;
-  text-align: center;
-  padding: 32px 24px 48px;
-  font-size: 0.8125rem;
-  font-weight: 400;
-  color: var(--text-tertiary);
-  letter-spacing: -0.01em;
+.footer {
+  margin-top: 70px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--faint);
 }
 
 /* ---- Responsive ---- */
-@media (max-width: 734px) {
-  .nav-inner {
-    padding: 0 16px;
+@media (max-width: 640px) {
+  .site-nav {
+    padding: 14px 16px;
   }
 
-  .hero-name {
-    font-size: clamp(2.5rem, 10vw, 3.5rem);
+  .brand-word {
+    font-size: 18px;
   }
 
-  .avatar-ring {
-    width: 140px;
-    height: 140px;
+  .nav-link {
+    padding: 7px 12px;
+    font-size: 12px;
   }
 
-  .avatar-container {
-    margin-bottom: 36px;
+  .theme-toggle {
+    width: 38px;
+    height: 38px;
+    font-size: 15px;
   }
 
-  .hero-metrics {
-    flex-direction: column;
-    width: 100%;
-    padding: 0 8px;
+  .skill-group {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 
-  .metric-card {
-    width: 100%;
-    justify-content: center;
+  .group-label {
+    padding-top: 0;
   }
 
-  .section-title {
-    font-size: clamp(2rem, 8vw, 3rem);
-  }
-
-  .skills-grid {
-    gap: 8px;
-  }
-
-  .skill-chip {
-    padding: 10px 20px;
-    font-size: 0.875rem;
-  }
-
-  .social-row {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .social-pill {
-    width: 100%;
-    max-width: 280px;
+  .social-link {
+    flex: 1 1 calc(50% - 6px);
     justify-content: center;
   }
 }
 
-@media (max-width: 430px) {
-  .hero-name {
-    font-size: 2.25rem;
-  }
-
-  .typing-wrapper {
-    font-size: 1rem;
-  }
-
-  .nav-links {
-    gap: 4px;
-  }
-
-  .nav-link {
-    padding: 6px 10px;
-    font-size: 0.75rem;
+@media (prefers-reduced-motion: reduce) {
+  .avatar {
+    animation: none;
   }
 }
 </style>
